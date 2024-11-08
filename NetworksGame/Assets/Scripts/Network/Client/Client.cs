@@ -29,7 +29,8 @@ public class Client : MonoBehaviour
     Socket socket;
     string clientText;
 
-    Thread mainThread;
+    Thread mainUDPThread;
+    Thread mainTCPThread;
     bool connected = false;
     bool waiting = false;
 
@@ -38,17 +39,19 @@ public class Client : MonoBehaviour
         UItext = UItextObj.GetComponent<TextMeshProUGUI>();
         UiInputMessage = UiInputMessageObj.GetComponent<TMP_InputField>();
         UiInputUsername = UiInputUsernameObj.GetComponent<TMP_InputField>();
-        mainThread = new Thread(Send);
+        mainUDPThread = new Thread(Send);
+        mainTCPThread = new Thread(Send);
     }
     public void StartClient()
     {
-        mainThread.Start();
+        mainUDPThread.Start();
+        mainTCPThread.Start();
     }
 
     void Update()
     {
         UItext.text = clientText;
-        if (!mainThread.IsAlive && connected)
+        if (!mainUDPThread.IsAlive && connected)
         {
             IEnumerator coroutine = waiter();
             StartCoroutine(coroutine);
