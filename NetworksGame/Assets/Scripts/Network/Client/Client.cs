@@ -5,56 +5,42 @@ using System.Text;
 using UnityEngine;
 using System.Threading;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine.SceneManagement;
-
-
-//Adapt it to use UDP for connection but TCP for chat or data that needs to be 100% received
+using System;
 
 public class Client : MonoBehaviour
 {
-    public GameObject ComputerTCP;
-    public GameObject UiButtonTextObj;
-
-    public GameObject UItextObj;
-    TextMeshProUGUI UItext;
-
-    public GameObject UiInputUsernameObj;
-    TMP_InputField UiInputUsername;
-    string userName;
-
-    public GameObject UiInputMessageObj;
-    TMP_InputField UiInputMessage;
-
     Socket socket;
     string clientText;
 
-    Thread mainUDPThread;
-    Thread mainTCPThread;
+    Thread mainThread;
     bool connected = false;
     bool waiting = false;
 
+    private UdpClient client;
+    private IPEndPoint serverEndPoint;
+    private IPEndPoint clientEndPoint;
+
+    public Transform playerTransform;
+
+    // Start is called before the first frame update
     void Start()
     {
-        UItext = UItextObj.GetComponent<TextMeshProUGUI>();
-        UiInputMessage = UiInputMessageObj.GetComponent<TMP_InputField>();
-        UiInputUsername = UiInputUsernameObj.GetComponent<TMP_InputField>();
-        mainUDPThread = new Thread(Send);
-        mainTCPThread = new Thread(Send);
+        mainThread = new Thread(Send);
+        client = new UdpClient();
+        serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
     }
+
     public void StartClient()
     {
-        mainUDPThread.Start();
-        mainTCPThread.Start();
+        mainThread.Start();
     }
 
     void Update()
     {
-        UItext.text = clientText;
-        if (!mainUDPThread.IsAlive && connected)
+        if (!mainThread.IsAlive && connected)
         {
-            IEnumerator coroutine = waiter();
-            StartCoroutine(coroutine);
+            StartCoroutine(waiter());
         }
 
         if (Input.GetKeyDown(KeyCode.Return))
@@ -68,7 +54,6 @@ public class Client : MonoBehaviour
     {
         try
         {
-            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
             if (!waiting)
             {
                 //Unlike with TCP, we don't "connect" first,
@@ -77,13 +62,13 @@ public class Client : MonoBehaviour
                 //Again, initialize the socket
 
                 socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.Connect(ipep);
+                socket.Connect(serverEndPoint);
                 clientText += "\nConnected to the server";
 
                 //Send the Handshake to the server's endpoint.
                 //This time, our UDP socket doesn't have it, so we have to pass it
                 //as a parameter on it's SendTo() method
-                socket.SendTo(Encoding.ASCII.GetBytes(UiInputUsername.text), ipep);
+                socket.SendTo(Encoding.ASCII.GetBytes("UiInputUsername.text"), serverEndPoint);
 
                 //We'll wait for a server response,
                 //so you can already start the receive thread
@@ -94,17 +79,19 @@ public class Client : MonoBehaviour
             }
             else
             {
-                socket.SendTo(Encoding.ASCII.GetBytes(UiInputMessage.text), ipep);
+                //socket.SendTo(Encoding.ASCII.GetBytes(UiInputMessage.text), serverEndPoint);
+                // Send player data info using JSON serialization
+                SendPlayerData();
             }
-
         }
         catch (SocketException ex)
         {
             clientText += $"\nError sending message to the server: {ex.Message}";
         }
-
     }
 
+    //Same as in the server, in this case the remote is a bit useless
+    //since we already know it's the server who's communicating with us
     void Receive()
     {
         byte[] data = new byte[1024];
@@ -118,18 +105,63 @@ public class Client : MonoBehaviour
         }
     }
 
+    private void SendPlayerData()
+    {
+        Vector3 position = playerTransform.position;
+        bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
+
+        // Create and serialize player data
+        PlayerData playerData = new PlayerData(playerTransform, isJumping);
+        string jsonData = JsonUtility.ToJson(playerData);
+
+        // Send JSON string as bytes
+        byte[] buffer = Encoding.UTF8.GetBytes(jsonData);
+        client.Send(buffer, buffer.Length, serverEndPoint);
+    }
+
+    private void BeginReceive()
+    {
+        client.BeginReceive(OnReceive, null);
+    }
+
+
+    private void OnReceive(IAsyncResult ar)
+    {
+        byte[] data = client.EndReceive(ar, ref clientEndPoint);
+        string jsonData = Encoding.UTF8.GetString(data);
+
+        UpdateOtherPlayerPosition(jsonData);
+
+        // Continue receiving
+        BeginReceive();
+    }
+
+    private void UpdateOtherPlayerPosition(string jsonData)
+    {
+        // Deserialize JSON data to PlayerData object
+        PlayerData otherPlayerData = JsonUtility.FromJson<PlayerData>(jsonData);
+
+        // Use deserialized data to update opponent's transform
+        // opponentTransform.position = new Vector3(otherPlayerData.posX, otherPlayerData.posY, otherPlayerData.posZ);
+
+        // Handle jump state if needed
+        // bool isOtherPlayerJumping = otherPlayerData.isJumping;
+    }
+
+    void OnDestroy()
+    {
+        client.Close();
+    }
+
     IEnumerator waiter()
     {
         yield return new WaitForSeconds(4);
         if (connected)
         {
             SceneManager.LoadScene("Exercise1_WaitingRoom");
-            ComputerTCP.SetActive(false);
-            UiButtonTextObj.SetActive(false);
-            UiInputUsernameObj.SetActive(false);
-            UiInputMessageObj.SetActive(true);
             connected = false;
             waiting = true;
         }
     }
 }
+

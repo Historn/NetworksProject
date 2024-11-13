@@ -16,23 +16,34 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("KeyBinds")]
     public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode ability1Key = KeyCode.C;
+    public KeyCode ultimateKey = KeyCode.R;
 
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask groundMask;
     bool grounded;
 
-    public Transform orientation;
+    [Header("Wall Check")]
+    public float playerWidth;
+    public LayerMask wallMask;
+    bool wallrun;
+
+    //public Transform orientation;
 
     float horizontalInput;
     float verticalInput;
 
+    public GameObject playerCam;
     Vector3 moveDirection;
 
     Rigidbody rb;
 
     void Start()
     {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
 
@@ -65,7 +76,7 @@ public class PlayerMovement : MonoBehaviour
         verticalInput = Input.GetAxisRaw("Vertical");
 
         //Jump
-        if(Input.GetKey(jumpKey) && readyToJump && grounded)
+        if (Input.GetKey(jumpKey) && readyToJump && grounded)
         {
             readyToJump = false;
             Jump();
@@ -76,7 +87,7 @@ public class PlayerMovement : MonoBehaviour
     void MovePlayer()
     {
         //Calculate player movement direction
-        moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
+        moveDirection = playerCam.transform.forward * verticalInput + playerCam.transform.right * horizontalInput;
 
         if (!grounded) //Air
         {

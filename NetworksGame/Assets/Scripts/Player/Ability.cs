@@ -2,7 +2,7 @@ using UnityEngine;
 
 enum AbilityType
 {
-    NORMAL,
+    ACTIVE,
     PASSIVE,
     ULTIMATE
 }
