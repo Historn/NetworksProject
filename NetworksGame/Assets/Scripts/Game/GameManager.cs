@@ -39,9 +39,9 @@ namespace HyperStrike
         uint gm_LocalGoals = 0;
         uint gm_VisitantGoals = 0;
 
-        public static GameState gm_GameState = GameState.NONE; // Change for the final
+        private static GameState gm_GameState = GameState.NONE; // Change for the final
 
-        void GameStateBehavior()
+        static void GameStateBehavior()
         {
             switch (gm_GameState)
             {
@@ -65,6 +65,12 @@ namespace HyperStrike
                 default:
                     break;
             }
+        }
+
+        public static void SetGameState(GameState state) 
+        { 
+            gm_GameState = state; 
+            GameStateBehavior();
         }
 
     }

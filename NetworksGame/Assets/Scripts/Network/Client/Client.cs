@@ -141,6 +141,12 @@ public class Client : MonoBehaviour
         // Deserialize JSON data to PlayerData object
         PlayerData otherPlayerData = JsonUtility.FromJson<PlayerData>(jsonData);
 
+        // Acces to server users list
+        //foreach (User u in users)
+        //{
+
+        //}
+
         // Use deserialized data to update opponent's transform
         // opponentTransform.position = new Vector3(otherPlayerData.posX, otherPlayerData.posY, otherPlayerData.posZ);
 

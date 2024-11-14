@@ -294,6 +294,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hostButton: {fileID: 1143415420}
   hostMenu: {fileID: 887430118}
+  hostInputText: {fileID: 0}
 --- !u!1 &483499082
 GameObject:
   m_ObjectHideFlags: 0
@@ -810,7 +811,7 @@ GameObject:
   - component: {fileID: 1203105190}
   - component: {fileID: 1203105189}
   m_Layer: 5
-  m_Name: Button
+  m_Name: CreateMatchButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
