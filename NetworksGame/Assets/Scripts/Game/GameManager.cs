@@ -39,20 +39,23 @@ namespace HyperStrike
         uint gm_LocalGoals = 0;
         uint gm_VisitantGoals = 0;
 
-        private static GameState gm_GameState = GameState.NONE; // Change for the final
+        public static GameState gm_GameState { get; private set; } = GameState.MENU; // Change for the final
 
-        static void GameStateBehavior()
+        void GameStateBehavior()
         {
             switch (gm_GameState)
             {
                 case GameState.NONE:
                     SceneManager.LoadScene("MainTitle");
+                    gm_GameState = GameState.TITLE;
                     break;
                 case GameState.TITLE:
                     break;
                 case GameState.MENU:
                     break;
                 case GameState.WAITING_ROOM:
+                    SceneManager.LoadScene("ArnauTestingScene");
+                    
                     break;
                 case GameState.IN_GAME:
                     break;
@@ -67,7 +70,7 @@ namespace HyperStrike
             }
         }
 
-        public static void SetGameState(GameState state) 
+        public void SetGameState(GameState state) 
         { 
             gm_GameState = state; 
             GameStateBehavior();

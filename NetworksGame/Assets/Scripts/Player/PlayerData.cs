@@ -6,14 +6,14 @@ using UnityEngine;
 [Serializable]
 public class PlayerData
 {
-    public string playerName;
+    public string playerName; // Character
     public Vector3 position;
     public Transform playerTransform;
     public bool isJumping;
+    public int userId;
 
-    public PlayerData(Transform transform, bool jumping)
+    public PlayerData()
     {
-        playerTransform = transform;
-        isJumping = jumping;
+        userId = 5;
     }
 }

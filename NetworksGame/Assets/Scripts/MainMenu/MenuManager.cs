@@ -6,19 +6,18 @@ using HyperStrike;
 
 public class MenuManager : MonoBehaviour
 {
-    [SerializeField] GameObject hostButton;
+    [SerializeField] GameObject initMenu;
+
     [SerializeField] GameObject hostMenu;
 
-    [SerializeField] GameObject hostInputText;
-    TMP_InputField UiInputUsername;
+    [SerializeField] GameObject joinMenu;
 
-    [SerializeField] GameObject gameManagerObj;
-    [SerializeField] GameObject networkManagerObj;
+    [SerializeField] GameObject managerObj;
 
     // Start is called before the first frame update
     void Start()
     {
-        UiInputUsername = hostInputText.GetComponent<TMP_InputField>();
+        //UiInputUsername = hostInputText.GetComponent<TMP_InputField>();
     }
 
     // Update is called once per frame
@@ -27,17 +26,43 @@ public class MenuManager : MonoBehaviour
         
     }
 
-    public void OpenHostMatchMenu()
+    public void OpenHostGameMenu()
     {
-        hostButton.SetActive(false);
+        initMenu.SetActive(false);
         hostMenu.SetActive(true);
     }
-
-    public void CreateMatch()
+    
+    public void OpenJoinGameMenu()
     {
-        DontDestroyOnLoad(gameManagerObj);
-        DontDestroyOnLoad(networkManagerObj);
-        networkManagerObj.GetComponent<Client>().enabled = false;
-        GameManager.SetGameState(GameState.WAITING_ROOM);
+        initMenu.SetActive(false);
+        joinMenu.SetActive(true);
+    }
+    
+    public void BackToInitMenu()
+    {
+        hostMenu.SetActive(false);
+        joinMenu.SetActive(false);
+        initMenu.SetActive(true);
+    }
+
+    public void CreateGame(TMP_InputField username)
+    {
+        Debug.Log(username.text);
+        DontDestroyOnLoad(managerObj); // Change to another place
+        NetworkManager.instance.StartHost();
+        GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+    }
+    
+    public void JoinGame(TMP_InputField username)
+    {
+        Debug.Log(username.text);
+        DontDestroyOnLoad(managerObj); // Change to another place
+        NetworkManager.instance.StartClient();
+        GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+    }
+
+    public void Quit()
+    {
+        Application.Quit();
     }
 }

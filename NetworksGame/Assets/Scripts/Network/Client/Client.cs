@@ -107,11 +107,12 @@ public class Client : MonoBehaviour
 
     private void SendPlayerData()
     {
-        Vector3 position = playerTransform.position;
-        bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
+        //PlayerMovement movement = player.GetComponent<PlayerMovement>().gr;
+        //bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
+        Vector3 pos = new Vector3(1,0,1);
 
         // Create and serialize player data
-        PlayerData playerData = new PlayerData(playerTransform, isJumping);
+        PlayerData playerData = new PlayerData();
         string jsonData = JsonUtility.ToJson(playerData);
 
         // Send JSON string as bytes
