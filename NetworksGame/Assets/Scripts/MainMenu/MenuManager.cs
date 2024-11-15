@@ -14,18 +14,6 @@ public class MenuManager : MonoBehaviour
 
     [SerializeField] GameObject managerObj;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        //UiInputUsername = hostInputText.GetComponent<TMP_InputField>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     public void OpenHostGameMenu()
     {
         initMenu.SetActive(false);

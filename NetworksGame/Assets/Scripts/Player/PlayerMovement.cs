@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask groundMask;
-    bool grounded;
+    public bool isGrounded;
 
     [Header("Wall Check")]
     public float playerWidth;
@@ -53,13 +53,13 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         //Ground Check
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, groundMask);
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, groundMask);
 
         MovementInput();
         LimitSpeed();
 
         //Handle Drag
-        if (grounded)
+        if (isGrounded)
             rb.drag = groundDrag;
         else
             rb.drag = 0;
@@ -76,7 +76,7 @@ public class PlayerMovement : MonoBehaviour
         verticalInput = Input.GetAxisRaw("Vertical");
 
         //Jump
-        if (Input.GetKey(jumpKey) && readyToJump && grounded)
+        if (Input.GetKey(jumpKey) && readyToJump && isGrounded)
         {
             readyToJump = false;
             Jump();
@@ -89,7 +89,7 @@ public class PlayerMovement : MonoBehaviour
         //Calculate player movement direction
         moveDirection = playerCam.transform.forward * verticalInput + playerCam.transform.right * horizontalInput;
 
-        if (!grounded) //Air
+        if (!isGrounded) //Air
         {
             rb.AddForce(moveDirection.normalized * movementSpeed * 10f * airMultiplier, ForceMode.Force);
             return;

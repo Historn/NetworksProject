@@ -109,15 +109,15 @@ public class Client : MonoBehaviour
     {
         //PlayerMovement movement = player.GetComponent<PlayerMovement>().gr;
         //bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
-        Vector3 pos = new Vector3(1,0,1);
+        //Vector3 pos = new Vector3(1,0,1);
 
-        // Create and serialize player data
-        PlayerData playerData = new PlayerData();
-        string jsonData = JsonUtility.ToJson(playerData);
+        //// Create and serialize player data
+        //PlayerData playerData = new PlayerData();
+        //string jsonData = JsonUtility.ToJson(playerData);
 
-        // Send JSON string as bytes
-        byte[] buffer = Encoding.UTF8.GetBytes(jsonData);
-        client.Send(buffer, buffer.Length, serverEndPoint);
+        //// Send JSON string as bytes
+        //byte[] buffer = Encoding.UTF8.GetBytes(jsonData);
+        //client.Send(buffer, buffer.Length, serverEndPoint);
     }
 
     private void BeginReceive()

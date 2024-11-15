@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using UnityEngine;
 using System.Text;
-//using UnityEngine.Networking;
+using UnityEngine.Networking;
 
 namespace HyperStrike
 {
@@ -13,15 +13,6 @@ namespace HyperStrike
     {
         public static NetworkManager instance { get; private set; }
         void Awake() { if (instance == null) instance = this; }
-
-        [System.Serializable]
-        public struct User
-        {
-            public string name;
-            public EndPoint endPoint;
-            public bool firstConnection;
-            public PlayerData playerData;
-        }
 
         Socket nm_Socket;
 
@@ -41,12 +32,12 @@ namespace HyperStrike
         bool connected = false;
 
         [SerializeField]GameObject clientInstancePrefab;
-        [SerializeField]GameObject player;
+        [SerializeField]Player player;
 
         // Start is called before the first frame update
         void Start()
         {
-            player = GameObject.FindGameObjectWithTag("Player");
+            player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
             serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
@@ -62,6 +53,16 @@ namespace HyperStrike
             newConnection.Start();
 
             Debug.Log(nm_StatusText);
+
+            // Create Host User as first user connected
+            User newUser = new User();
+            newUser.userId = 0; // Is the first user connected
+            newUser.name = "Host"; // Get from input
+            newUser.endPoint = serverEndPoint;
+            newUser.firstConnection = true;
+            newUser.playerData = new PlayerData(player); // Take owner player
+            nm_ConnectedUsers.Add(newUser);
+            nm_User = newUser;
         }
 
         void SendHost(EndPoint Remote, string message)
@@ -83,7 +84,8 @@ namespace HyperStrike
             byte[] data = new byte[1024];
             int recv = 0;
 
-            nm_StatusText += "\nWaiting for new Client...";
+            nm_StatusText = "Waiting for new Client...";
+            Debug.Log(nm_StatusText);
 
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint Remote = (EndPoint)(sender);
@@ -102,7 +104,6 @@ namespace HyperStrike
                     if (user.endPoint.ToString() == Remote.ToString())
                     {
                         newUser = user;
-                        newUser.firstConnection = false;
                         break;
                     }
                 }
@@ -112,18 +113,20 @@ namespace HyperStrike
                     Bounds bounds = GameObject.Find("Ground").GetComponent<BoxCollider>().bounds;
                     Instantiate(clientInstancePrefab, Spawner.RandomPointInBounds(bounds), new Quaternion(0,0,0,1));
 
+                    // Take UserData sent by user
+                    newUser.userId = nm_ConnectedUsers.Count;
                     newUser.name = receivedMessage;
                     newUser.endPoint = Remote;
                     nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
 
                     // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
-                    Thread serverAnswer = new Thread(() => SendHost(Remote, "Welcome to the UDP Server: " + newUser.name));
+                    Thread serverAnswer = new Thread(() => SendHost(Remote, newUser.ToString()));
                     serverAnswer.Start();
 
                     foreach (User user in nm_ConnectedUsers)
                     {
-                        Thread answer = new Thread(() => SendHost(user.endPoint, "New User connected: " + newUser.name));
-                        answer.Start();
+                        // Send actual user packet
+                        HandlePlayerData(newUser, receivedMessage, Remote);
                     }
                     newUser.firstConnection = false;
                     nm_ConnectedUsers.Add(newUser);
@@ -139,7 +142,7 @@ namespace HyperStrike
         {
             PlayerData playerData = JsonUtility.FromJson<PlayerData>(jsonData);
             user.playerData = playerData;
-            nm_StatusText += $"\nReceived position from {user.name}: {playerData.playerTransform.position.x}, {playerData.playerTransform.position.y}, {playerData.playerTransform.position.z}";
+            nm_StatusText += $"\nReceived data from {user.name}: {playerData.position[0]}, {playerData.position[1]}, {playerData.position[2]}";
 
             // Broadcast the updated player position to all clients
             foreach (User u in nm_ConnectedUsers)
@@ -161,6 +164,9 @@ namespace HyperStrike
 
         void SendClient()
         {
+            ///
+            /// INTANCE AND SEND CLIENT
+            ///
             try
             {
                 // IP EndPoint Default to Local: "127.0.0.1" Port: 9050
@@ -199,10 +205,9 @@ namespace HyperStrike
         {
             //PlayerMovement movement = player.GetComponent<PlayerMovement>().gr;
             //bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
-            Vector3 pos = player.transform.position; // No existe player en Menu
-
+            
             // Create and serialize player data
-            PlayerData playerData = new PlayerData();
+            PlayerData playerData = new PlayerData(player);
             string jsonData = JsonUtility.ToJson(playerData);
 
             // Send JSON string as bytes

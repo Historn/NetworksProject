@@ -3044,7 +3044,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6731ba15420737244afffd7f511ca4a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clientInstancePrefab: {fileID: 0}
+  clientInstancePrefab: {fileID: 3515099413303121271, guid: 888f48abdf2415846b884ca3bedf30f5,
+    type: 3}
+  player: {fileID: 0}
 --- !u!1 &1788692749
 GameObject:
   m_ObjectHideFlags: 0

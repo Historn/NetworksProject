@@ -99,20 +99,20 @@ public class Server : MonoBehaviour
 
     void HandlePlayerData(User user, string jsonData, EndPoint Remote)
     {
-        PlayerData playerData = JsonUtility.FromJson<PlayerData>(jsonData);
-        user.playerData = playerData;
-        serverText += $"\nReceived position from {user.name}: {playerData.playerTransform.position.x}, {playerData.playerTransform.position.y}, {playerData.playerTransform.position.z}";
+        //PlayerData playerData = JsonUtility.FromJson<PlayerData>(jsonData);
+        //user.playerData = playerData;
+        //serverText += $"\nReceived position from {user.name}: {playerData.playerTransform.position.x}, {playerData.playerTransform.position.y}, {playerData.playerTransform.position.z}";
 
-        // Broadcast the updated player position to all clients
-        foreach (User u in users)
-        {
-            if (u.endPoint.ToString() != Remote.ToString())
-            {
-                string playerJson = JsonUtility.ToJson(user.playerData);
-                Thread sendThread = new Thread(() => Send(u.endPoint, playerJson));
-                sendThread.Start();
-            }
-        }
+        //// Broadcast the updated player position to all clients
+        //foreach (User u in users)
+        //{
+        //    if (u.endPoint.ToString() != Remote.ToString())
+        //    {
+        //        string playerJson = JsonUtility.ToJson(user.playerData);
+        //        Thread sendThread = new Thread(() => Send(u.endPoint, playerJson));
+        //        sendThread.Start();
+        //    }
+        //}
     }
 
     void Send(EndPoint Remote, string message)
