@@ -16,7 +16,7 @@ public class Player : MonoBehaviour
     public int id;
     public PlayerState state;
     public PlayerMovement playerMovement;
-    public bool updateGO = false;
+    public bool updateGO = true;
     public PlayerData playerData;
 
     // Start is called before the first frame update
@@ -34,6 +34,7 @@ public class Player : MonoBehaviour
         if (updateGO)
         {
             SetPlayerData(playerData);
+            updateGO = false;
         }
     }
 

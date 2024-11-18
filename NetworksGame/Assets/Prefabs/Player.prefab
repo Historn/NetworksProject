@@ -184,14 +184,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 179ac9a0d17662145933f5b144607af7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  id: 0
+  id: -1
   state: 0
   playerMovement: {fileID: 0}
   updateGO: 0
   playerData:
-    playerId: -1
-    playerName: op
-    position: []
+    playerId: 1
+    playerName: g
+    position:
+    - 14.598986
+    - 1.25
+    - -2.2906365
 --- !u!114 &4255710341945334688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -575,7 +578,7 @@ MonoBehaviour:
         LegacyInput: Mouse Y
         LegacyGain: -400
         CancelDeltaTime: 0
-      InputValue: 0
+      InputValue: -0
       Driver:
         AccelTime: 0
         DecelTime: 0

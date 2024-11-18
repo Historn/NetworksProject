@@ -8,6 +8,7 @@ using System.Text;
 using UnityEngine.Networking;
 using TMPro;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 namespace HyperStrike
 {
@@ -18,14 +19,10 @@ namespace HyperStrike
 
         Socket nm_Socket;
 
-        //private UdpClient client;
         private IPEndPoint serverEndPoint;
-        private IPEndPoint clientEndPoint;
 
         // Network Threads
         Thread nm_MainNetworkThread;
-        Thread nm_mainUDPThread; // Used for player data
-        Thread nm_mainTCPThread; // Used for chat data?
 
         User nm_User;
         List<User> nm_ConnectedUsers = new List<User>();
@@ -34,6 +31,7 @@ namespace HyperStrike
         public GameObject UItextObj;
         TextMeshProUGUI UItext;
         string nm_StatusText;
+        bool creatingPlayer = false;
         bool connected = false;
 
         [SerializeField]GameObject clientInstancePrefab;
@@ -54,12 +52,19 @@ namespace HyperStrike
         {
             UItext.text = nm_StatusText;
 
+            if (GameManager.gm_GameState == GameState.WAITING_ROOM && creatingPlayer)
+            {
+                string name = player.playerData.playerName;
+                player = GameObject.Find("Player").GetComponent<Player>();
+                player.playerData.playerName = name;
+                player.name = name;
+                creatingPlayer = false;
+            }
+
             // Capture player data on the main thread
             if (player != null && connected)
             {
-                nm_User.playerData = player.playerData;
-                nm_User.playerData.playerId = player.id;
-
+                player.UpdatePlayerData();
                 // Use the captured data in a background thread
                 Thread sendThread = new Thread(() => SendClient());
                 sendThread.Start();
@@ -70,6 +75,7 @@ namespace HyperStrike
                 //Bounds bounds = GameObject.Find("Ground").GetComponent<BoxCollider>().bounds;
                 //GameObject instance = Instantiate(clientInstancePrefab, Spawner.RandomPointInBounds(bounds), new Quaternion(0, 0, 0, 1));
                 GameObject go = Instantiate(clientInstancePrefab, new Vector3(0,0,3), new Quaternion(0, 0, 0, 1));
+                go.name = receivedPlayerData.playerName;
                 go.GetComponent<Player>().playerData = receivedPlayerData;
                 instantiateNewPlayer = false;
             }
@@ -188,6 +194,22 @@ namespace HyperStrike
             JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
             nm_StatusText = $"\nReceived data from {user.name}: {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
             Debug.Log(nm_StatusText);
+
+            MainThreadInvoker.Invoke(() =>
+            {
+                GameObject go;
+                go = new GameObject();
+                go = GameObject.Find(user.playerData.playerName);
+
+                if (go != null)
+                {
+                    Player p = go.GetComponent<Player>();
+                    p.updateGO = true;
+                    p.playerData = user.playerData;
+                    Debug.Log("GO FOUND");
+                }
+            });
+
             // Broadcast the updated player position to all clients
             foreach (User u in nm_ConnectedUsers)
             {
@@ -206,19 +228,6 @@ namespace HyperStrike
             player.playerData.playerId = -1;
             player.name = username;
             player.playerData.playerName = username;
-            //player.playerData.position[0] = 0;
-            //player.playerData.position[1] = 0;
-            //player.playerData.position[2] = 3;
-
-            Debug.Log(player.name);
-
-            //// Create Host User as first user connected
-            //nm_User = new User();
-            //nm_User.userId = 0;
-            //nm_User.name = username; // Get from input
-            //nm_User.firstConnection = true;
-            //nm_User.playerData.playerName = username; // Take owner player
-            //nm_User.playerData.playerId = nm_User.userId;
 
             nm_MainNetworkThread = new Thread(SendClient);
             nm_MainNetworkThread.Start();
@@ -249,6 +258,7 @@ namespace HyperStrike
                     receive.Start();
 
                     connected = true;
+                    creatingPlayer = true;
                 }
                 else
                 {
@@ -264,7 +274,7 @@ namespace HyperStrike
 
         private void SendPlayerData()
         {
-            string jsonData = JsonUtility.ToJson(nm_User.playerData);
+            string jsonData = JsonUtility.ToJson(player.playerData);
 
             // Send JSON string as bytes
             byte[] data = Encoding.UTF8.GetBytes(jsonData);
@@ -281,22 +291,29 @@ namespace HyperStrike
                 int recv = nm_Socket.ReceiveFrom(data, ref Remote);
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
-                PlayerData pData = new PlayerData(player);
+                PlayerData pData = player.playerData;
                 JsonUtility.FromJsonOverwrite(receivedJson, pData);
 
-                GameObject go = GameObject.Find(pData.playerName);
+                
+                MainThreadInvoker.Invoke(() => 
+                {
+                    GameObject go;
+                    go = new GameObject();
+                    go = GameObject.Find(pData.playerName);
 
-                if (go != null) 
-                {
-                    Player p = go.GetComponent<Player>();
-                    p.updateGO = true;
-                    p.playerData = pData;
-                }
-                else
-                {
-                    instantiateNewPlayer = true;
-                    receivedPlayerData = pData;
-                }
+                    if (go != null)
+                    {
+                        Player p = go.GetComponent<Player>();
+                        p.updateGO = true;
+                        p.playerData = pData;
+                        Debug.Log("GO FOUND");
+                    }
+                    else
+                    {
+                        instantiateNewPlayer = true;
+                        receivedPlayerData = pData;
+                    }
+                });
             }
         }
     }
