@@ -44,7 +44,7 @@ namespace HyperStrike
         void Start()
         {
             UItext = UItextObj.GetComponent<TextMeshProUGUI>();
-            player = playerPrefab.GetComponent<Player>();
+            player = new Player(playerPrefab.GetComponent<Player>());
             serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
@@ -52,32 +52,25 @@ namespace HyperStrike
         {
             UItext.text = nm_StatusText;
 
-            if (GameManager.gm_GameState == GameState.WAITING_ROOM && creatingPlayer)
+            if (SceneManager.GetActiveScene().name == "ArnauTestingScene" && creatingPlayer)
             {
                 string name = player.playerData.playerName;
                 player = GameObject.Find("Player").GetComponent<Player>();
-                player.playerData.playerName = name;
-                player.name = name;
-                creatingPlayer = false;
+                if (player != null)
+                {
+                    player.playerData.playerName = name;
+                    player.name = name;
+                    player.updateGO = true;
+                    creatingPlayer = false;
+                }
             }
 
             // Capture player data on the main thread
             if (player != null && connected)
             {
-                player.UpdatePlayerData();
                 // Use the captured data in a background thread
                 Thread sendThread = new Thread(() => SendClient());
                 sendThread.Start();
-            }
-
-            if (instantiateNewPlayer)
-            {
-                //Bounds bounds = GameObject.Find("Ground").GetComponent<BoxCollider>().bounds;
-                //GameObject instance = Instantiate(clientInstancePrefab, Spawner.RandomPointInBounds(bounds), new Quaternion(0, 0, 0, 1));
-                GameObject go = Instantiate(clientInstancePrefab, new Vector3(0,0,3), new Quaternion(0, 0, 0, 1));
-                go.name = receivedPlayerData.playerName;
-                go.GetComponent<Player>().playerData = receivedPlayerData;
-                instantiateNewPlayer = false;
             }
         }
 
@@ -89,8 +82,8 @@ namespace HyperStrike
             nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             nm_Socket.Bind(ipep);
 
-            player.id = 0;
-            player.name = username;
+            player.playerData.playerId = 0;
+            player.playerData.playerName = username;
 
             // Create Host User as first user connected
             nm_User = new User();
@@ -98,7 +91,6 @@ namespace HyperStrike
             nm_User.name = username; // Get from input
             nm_User.endPoint = serverEndPoint;
             nm_User.firstConnection = true;
-            nm_User.playerData = player.playerData;
             nm_ConnectedUsers.Add(nm_User);
 
             nm_StatusText += "Host User created...";
@@ -123,6 +115,8 @@ namespace HyperStrike
 
         void ReceiveHost()
         {
+            creatingPlayer = true;
+
             byte[] data = new byte[1024];
             int recv = 0;
 
@@ -163,12 +157,16 @@ namespace HyperStrike
 
                     receivedPlayerData = newUser.playerData;
 
-                    instantiateNewPlayer = true;
+                    MainThreadInvoker.Invoke(() =>
+                    {
+                        InstatiateGO(newUser.playerData);
+                    });
 
                     nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
 
                     // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
-                    string packet = JsonUtility.ToJson(nm_User.playerData);
+                    Debug.Log(player.playerData.playerName);
+                    string packet = JsonUtility.ToJson(player.playerData);
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
                     serverAnswer.Start();
 
@@ -193,20 +191,17 @@ namespace HyperStrike
         {
             JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
             nm_StatusText = $"\nReceived data from {user.name}: {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
-            Debug.Log(nm_StatusText);
 
             MainThreadInvoker.Invoke(() =>
             {
-                GameObject go;
-                go = new GameObject();
-                go = GameObject.Find(user.playerData.playerName);
+                GameObject go = GameObject.Find(user.playerData.playerName);
 
                 if (go != null)
                 {
                     Player p = go.GetComponent<Player>();
                     p.updateGO = true;
                     p.playerData = user.playerData;
-                    Debug.Log("GO FOUND");
+                    Debug.Log("GO FOUND: " + p.playerData.position[0] + " " + p.playerData.position[1] + " " + p.playerData.position[2]);
                 }
             });
 
@@ -224,9 +219,7 @@ namespace HyperStrike
 
         public void StartClient(string username)
         {
-            player.id = -1;
             player.playerData.playerId = -1;
-            player.name = username;
             player.playerData.playerName = username;
 
             nm_MainNetworkThread = new Thread(SendClient);
@@ -247,10 +240,7 @@ namespace HyperStrike
                     nm_Socket.Connect(ipep);
                     nm_StatusText += "\nConnected to the host";
 
-                    string packet = JsonUtility.ToJson(player.playerData);
-                    byte[] data = Encoding.ASCII.GetBytes(packet);
-                    //Send the Handshake to the server's endpoint.
-                    nm_Socket.SendTo(data, ipep);
+                    SendPlayerData();
 
                     //We'll wait for a server response,
                     //so you can already start the receive thread
@@ -291,30 +281,39 @@ namespace HyperStrike
                 int recv = nm_Socket.ReceiveFrom(data, ref Remote);
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
-                PlayerData pData = player.playerData;
+                PlayerData pData = new PlayerData();
                 JsonUtility.FromJsonOverwrite(receivedJson, pData);
+                nm_StatusText = $"\nReceived data from {player.playerData.playerName}: {player.playerData.position[0]}, {player.playerData.position[1]}, {player.playerData.position[2]}";
 
-                
                 MainThreadInvoker.Invoke(() => 
                 {
-                    GameObject go;
-                    go = new GameObject();
-                    go = GameObject.Find(pData.playerName);
+                    GameObject go = GameObject.Find(pData.playerName);
+                    Debug.Log("GO FOUND: " + pData.playerName);
 
                     if (go != null)
                     {
                         Player p = go.GetComponent<Player>();
                         p.updateGO = true;
                         p.playerData = pData;
-                        Debug.Log("GO FOUND");
+                        Debug.Log("GO FOUND: "+p.playerData.playerName);
                     }
                     else
                     {
-                        instantiateNewPlayer = true;
-                        receivedPlayerData = pData;
+                        InstatiateGO(pData);
                     }
                 });
             }
         }
+
+        void InstatiateGO (PlayerData data)
+        {
+            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
+            goInstance.name = data.playerName;
+            goInstance.GetComponent<Player>().playerData = data;
+            Debug.Log("GO CREATED: " + data.playerName);
+        }
+
+
+
     }
 }

@@ -5,6 +5,13 @@ using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
 {
+    public Player(Player player)
+    {
+        this.id = player.id;
+        this.playerData = player.playerData;
+        this.state = player.state;
+    }
+
     public enum PlayerState
     {
         IDLE = 0,
@@ -16,26 +23,24 @@ public class Player : MonoBehaviour
     public int id;
     public PlayerState state;
     public PlayerMovement playerMovement;
-    public bool updateGO = true;
+    public bool updateGO = false;
     public PlayerData playerData;
 
     // Start is called before the first frame update
     void Start()
     {
-        playerData = new PlayerData(this);
-        //playerMovement = this.gameObject.GetComponent<PlayerMovement>();
+        //playerData = new PlayerData(this);
     }
 
     // Update is called once per frame
     void Update()
     {
-        UpdatePlayerData();
-
         if (updateGO)
         {
-            SetPlayerData(playerData);
+            SetPlayerData();
             updateGO = false;
         }
+        UpdatePlayerData();
     }
 
     public void UpdatePlayerData()
@@ -45,8 +50,8 @@ public class Player : MonoBehaviour
         playerData.position[2] = this.gameObject.transform.position.z;
     }
     
-    public void SetPlayerData(PlayerData data)
+    public void SetPlayerData()
     {
-        this.gameObject.transform.position = new Vector3(data.position[0], data.position[1], data.position[2]);
+        this.gameObject.transform.position = new Vector3(playerData.position[0], playerData.position[1], playerData.position[2]);
     }
 }

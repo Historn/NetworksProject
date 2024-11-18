@@ -39,4 +39,6 @@ public class PlayerData
 
         //playerState = (int)player.state;
     }
+
+    public PlayerData() { playerName = ""; }
 }
