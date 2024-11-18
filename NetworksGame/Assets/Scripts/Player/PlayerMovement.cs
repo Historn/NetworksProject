@@ -27,7 +27,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Wall Check")]
     public float playerWidth;
     public LayerMask wallMask;
-    bool wallrun;
+    public bool wallrun;
 
     //public Transform orientation;
 

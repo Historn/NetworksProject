@@ -12,8 +12,6 @@ public class MenuManager : MonoBehaviour
 
     [SerializeField] GameObject joinMenu;
 
-    [SerializeField] GameObject managerObj;
-
     public void OpenHostGameMenu()
     {
         initMenu.SetActive(false);
@@ -36,16 +34,14 @@ public class MenuManager : MonoBehaviour
     public void CreateGame(TMP_InputField username)
     {
         Debug.Log(username.text);
-        DontDestroyOnLoad(managerObj); // Change to another place
-        NetworkManager.instance.StartHost();
+        NetworkManager.instance.StartHost(username.text);
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
     }
     
     public void JoinGame(TMP_InputField username)
     {
         Debug.Log(username.text);
-        DontDestroyOnLoad(managerObj); // Change to another place
-        NetworkManager.instance.StartClient();
+        NetworkManager.instance.StartClient(username.text);
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
     }
 

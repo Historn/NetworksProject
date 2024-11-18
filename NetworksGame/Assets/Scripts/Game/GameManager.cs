@@ -41,6 +41,16 @@ namespace HyperStrike
 
         public static GameState gm_GameState { get; private set; } = GameState.MENU; // Change for the final
 
+        [SerializeField] GameObject managerObj;
+        [SerializeField] GameObject canvasObj;
+        [SerializeField] GameObject menuPanelObj;
+
+        private void Start()
+        {
+            DontDestroyOnLoad(managerObj);
+            DontDestroyOnLoad(canvasObj);
+        }
+
         void GameStateBehavior()
         {
             switch (gm_GameState)
@@ -55,7 +65,7 @@ namespace HyperStrike
                     break;
                 case GameState.WAITING_ROOM:
                     SceneManager.LoadScene("ArnauTestingScene");
-                    
+                    menuPanelObj.SetActive(false);
                     break;
                 case GameState.IN_GAME:
                     break;

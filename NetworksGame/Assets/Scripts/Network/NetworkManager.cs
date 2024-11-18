@@ -6,6 +6,8 @@ using System.Net;
 using UnityEngine;
 using System.Text;
 using UnityEngine.Networking;
+using TMPro;
+using System.Linq;
 
 namespace HyperStrike
 {
@@ -27,42 +29,72 @@ namespace HyperStrike
 
         User nm_User;
         List<User> nm_ConnectedUsers = new List<User>();
+        bool instantiateNewPlayer = false;
 
+        public GameObject UItextObj;
+        TextMeshProUGUI UItext;
         string nm_StatusText;
         bool connected = false;
 
         [SerializeField]GameObject clientInstancePrefab;
-        [SerializeField]Player player;
+
+        [SerializeField]GameObject playerPrefab;
+        Player player;
 
         // Start is called before the first frame update
         void Start()
         {
-            player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
+            UItext = UItextObj.GetComponent<TextMeshProUGUI>();
+            player = playerPrefab.GetComponent<Player>();
             serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
-        public void StartHost()
+        void Update()
         {
-            nm_StatusText = "Creating Host Server...";
+            UItext.text = nm_StatusText;
+
+            if (instantiateNewPlayer)
+            {
+                //Bounds bounds = GameObject.Find("Ground").GetComponent<BoxCollider>().bounds;
+                //GameObject instance = Instantiate(clientInstancePrefab, Spawner.RandomPointInBounds(bounds), new Quaternion(0, 0, 0, 1));
+                GameObject go = Instantiate(clientInstancePrefab, new Vector3(-3,0,0), new Quaternion(0, 0, 0, 1));
+                //go.GetComponent<Player>() nm_ConnectedUsers.Last();
+                instantiateNewPlayer = false;
+            }
+
+            // Capture player data on the main thread
+            if (player != null && connected)
+            {
+                nm_User.playerData = player.GetPlayerData();
+
+                // Use the captured data in a background thread
+                Thread sendThread = new Thread(() => SendPlayerData());
+                sendThread.Start();
+            }
+        }
+
+        public void StartHost(string username)
+        {
+            nm_StatusText += "Creating Host Server...";
 
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
             nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             nm_Socket.Bind(ipep);
 
+            // Create Host User as first user connected
+            nm_User = new User();
+            nm_User.userId = 0; // Is the first user connected
+            nm_User.name = username; // Get from input
+            nm_User.endPoint = serverEndPoint;
+            nm_User.firstConnection = true;
+            nm_ConnectedUsers.Add(nm_User);
+
+            nm_StatusText += "Host User created...";
+
             Thread newConnection = new Thread(ReceiveHost);
             newConnection.Start();
 
             Debug.Log(nm_StatusText);
-
-            // Create Host User as first user connected
-            User newUser = new User();
-            newUser.userId = 0; // Is the first user connected
-            newUser.name = "Host"; // Get from input
-            newUser.endPoint = serverEndPoint;
-            newUser.firstConnection = true;
-            newUser.playerData = new PlayerData(player); // Take owner player
-            nm_ConnectedUsers.Add(newUser);
-            nm_User = newUser;
         }
 
         void SendHost(EndPoint Remote, string message)
@@ -84,7 +116,7 @@ namespace HyperStrike
             byte[] data = new byte[1024];
             int recv = 0;
 
-            nm_StatusText = "Waiting for new Client...";
+            nm_StatusText += "\nWaiting for new Client...";
             Debug.Log(nm_StatusText);
 
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
@@ -97,43 +129,49 @@ namespace HyperStrike
 
                 data = new byte[1024];
                 recv = nm_Socket.ReceiveFrom(data, ref Remote);
-                string receivedMessage = Encoding.ASCII.GetString(data, 0, recv);
+                string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
                 foreach (User user in nm_ConnectedUsers)
                 {
                     if (user.endPoint.ToString() == Remote.ToString())
                     {
                         newUser = user;
+                        newUser.firstConnection = false;
                         break;
                     }
                 }
 
                 if (newUser.firstConnection)
                 {
-                    Bounds bounds = GameObject.Find("Ground").GetComponent<BoxCollider>().bounds;
-                    Instantiate(clientInstancePrefab, Spawner.RandomPointInBounds(bounds), new Quaternion(0,0,0,1));
+                    JsonUtility.FromJsonOverwrite(receivedJson, newUser);
 
-                    // Take UserData sent by user
                     newUser.userId = nm_ConnectedUsers.Count;
-                    newUser.name = receivedMessage;
                     newUser.endPoint = Remote;
+
+                    instantiateNewPlayer = true;
+
                     nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
 
                     // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
-                    Thread serverAnswer = new Thread(() => SendHost(Remote, newUser.ToString()));
+                    string packet = JsonUtility.ToJson(nm_User); // HOST USER INFO
+                    Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
                     serverAnswer.Start();
+
+                    string packetNewUser = JsonUtility.ToJson(newUser);
 
                     foreach (User user in nm_ConnectedUsers)
                     {
+                        // MAYBE SEND ALSO FOR THE NEW USER UPDATE NEW INFO 
                         // Send actual user packet
-                        HandlePlayerData(newUser, receivedMessage, Remote);
+                        Thread answer = new Thread(() => SendHost(user.endPoint, packetNewUser));
+                        answer.Start();
                     }
                     newUser.firstConnection = false;
                     nm_ConnectedUsers.Add(newUser);
                 }
-                else
+                else if (newUser.endPoint.ToString() != nm_User.endPoint.ToString())
                 {
-                    HandlePlayerData(newUser, receivedMessage, Remote);
+                    HandlePlayerData(newUser, receivedJson, Remote);
                 }
             }
         }
@@ -156,31 +194,42 @@ namespace HyperStrike
             }
         }
 
-        public void StartClient()
+        public void StartClient(string username)
         {
+            // Create Host User as first user connected
+            nm_User = new User();
+            nm_User.userId = 0;
+            nm_User.name = username; // Get from input
+            nm_User.firstConnection = true;
+            nm_User.playerData = new PlayerData(player); // Take owner player
+
             nm_MainNetworkThread = new Thread(SendClient);
             nm_MainNetworkThread.Start();
+
+            //if (!nm_MainNetworkThread.IsAlive && connected)
+            //{
+            //    Instantiate(clientInstancePrefab, new Vector3(0,0,0), new Quaternion(0,0,0,1)); // Instantiate host
+            //}
         }
 
         void SendClient()
         {
-            ///
-            /// INTANCE AND SEND CLIENT
-            ///
             try
             {
                 // IP EndPoint Default to Local: "127.0.0.1" Port: 9050
                 IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
 
                 // Detect if the user is not waiting and in the Menu (or Finished Match?)
-                if (!(GameManager.gm_GameState == GameState.WAITING_ROOM))
+                if (!connected)
                 {
                     nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                     nm_Socket.Connect(ipep);
                     nm_StatusText += "\nConnected to the host";
 
+                    string packet = JsonUtility.ToJson(nm_User);
+                    byte[] data = Encoding.ASCII.GetBytes(packet);
                     //Send the Handshake to the server's endpoint.
-                    nm_Socket.SendTo(Encoding.ASCII.GetBytes(nm_User.name + ": Connected"), ipep);
+                    nm_Socket.SendTo(data, ipep);
 
                     //We'll wait for a server response,
                     //so you can already start the receive thread
@@ -203,16 +252,11 @@ namespace HyperStrike
 
         private void SendPlayerData()
         {
-            //PlayerMovement movement = player.GetComponent<PlayerMovement>().gr;
-            //bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
-            
-            // Create and serialize player data
-            PlayerData playerData = new PlayerData(player);
-            string jsonData = JsonUtility.ToJson(playerData);
+            string jsonData = JsonUtility.ToJson(nm_User.playerData);
 
             // Send JSON string as bytes
-            byte[] buffer = Encoding.UTF8.GetBytes(jsonData);
-            client.Send(buffer, buffer.Length, serverEndPoint);
+            byte[] data = Encoding.UTF8.GetBytes(jsonData);
+            nm_Socket.SendTo(data, serverEndPoint);
         }
 
         void ReceiveClient()
@@ -223,14 +267,23 @@ namespace HyperStrike
                 IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
                 EndPoint Remote = (EndPoint)(sender);
                 int recv = nm_Socket.ReceiveFrom(data, ref Remote);
+                string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
                 // Add deserialization process
-                //nm_StatusText += "\n" + Encoding.ASCII.GetString(data, 0, recv);
+                User userData = new User();
+                JsonUtility.FromJsonOverwrite(receivedJson, userData);
+
+                if (userData.firstConnection && nm_User.endPoint.ToString() != userData.endPoint.ToString())
+                {
+                    userData.firstConnection = false;
+                    nm_ConnectedUsers.Add(userData);
+                    instantiateNewPlayer = true;
+                }
+                else
+                {
+                    
+                }
             }
         }
-        //void OnDestroy()
-        //{
-        //    client.Close();
-        //}
     }
 }

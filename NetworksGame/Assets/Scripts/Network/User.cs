@@ -12,4 +12,5 @@ public struct User
     public EndPoint endPoint;
     public bool firstConnection;
     public PlayerData playerData;
+    public GameObject userGO;
 }
