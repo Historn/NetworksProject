@@ -64,7 +64,7 @@ namespace HyperStrike
                 case GameState.MENU:
                     break;
                 case GameState.WAITING_ROOM:
-                    SceneManager.LoadScene("ArnauTestingScene");
+                    SceneManager.LoadScene("PitchScene");
                     menuPanelObj.SetActive(false);
                     break;
                 case GameState.IN_GAME:

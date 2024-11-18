@@ -52,7 +52,7 @@ namespace HyperStrike
         {
             UItext.text = nm_StatusText;
 
-            if (SceneManager.GetActiveScene().name == "ArnauTestingScene" && creatingPlayer)
+            if (SceneManager.GetActiveScene().name == "PitchScene" && creatingPlayer)
             {
                 string name = player.playerData.playerName;
                 player = GameObject.Find("Player").GetComponent<Player>();

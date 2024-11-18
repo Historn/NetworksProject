@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 2b58357fcb9a1ac40ba60d9046c084f4
   - enabled: 1
+    path: Assets/Scenes/PitchScene.unity
+    guid: e96a602a8dbab534e8e31a5c019deaba
+  - enabled: 0
     path: Assets/Scenes/ArnauTestingScene.unity
     guid: 504571384a9ad3a409be05a7e010aa2e
   m_configObjects: {}
