@@ -33,16 +33,16 @@ public class MenuManager : MonoBehaviour
 
     public void CreateGame(TMP_InputField username)
     {
-        Debug.Log(username.text);
-        NetworkManager.instance.StartHost(username.text);
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+        NetworkManager.instance.StartHost(username.text);
+        Debug.Log(username.text);
     }
     
     public void JoinGame(TMP_InputField username)
     {
-        Debug.Log(username.text);
-        NetworkManager.instance.StartClient(username.text);
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+        NetworkManager.instance.StartClient(username.text);
+        Debug.Log(username.text);
     }
 
     public void Quit()

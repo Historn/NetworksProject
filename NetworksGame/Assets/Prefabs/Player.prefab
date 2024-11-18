@@ -184,9 +184,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 179ac9a0d17662145933f5b144607af7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  characterName: PlayableCharacter
+  id: 0
   state: 0
   playerMovement: {fileID: 0}
+  updateGO: 0
+  playerData:
+    playerId: -1
+    playerName: op
+    position: []
 --- !u!114 &4255710341945334688
 MonoBehaviour:
   m_ObjectHideFlags: 0

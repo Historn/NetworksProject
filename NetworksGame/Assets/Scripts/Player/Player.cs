@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
 {
@@ -12,26 +13,35 @@ public class Player : MonoBehaviour
         SHOOTING
     }
 
-    public string characterName; // Change to character name with scriptable obj
+    public int id;
     public PlayerState state;
     public PlayerMovement playerMovement;
-    public User user;
+    public bool updateGO = false;
+    public PlayerData playerData;
 
     // Start is called before the first frame update
     void Start()
     {
+        playerData = new PlayerData(this);
         //playerMovement = this.gameObject.GetComponent<PlayerMovement>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        UpdatePlayerData();
+
+        if (updateGO)
+        {
+            SetPlayerData(playerData);
+        }
     }
 
-    public PlayerData GetPlayerData()
+    public void UpdatePlayerData()
     {
-        return new PlayerData(this);
+        playerData.position[0] = this.gameObject.transform.position.x;
+        playerData.position[1] = this.gameObject.transform.position.y;
+        playerData.position[2] = this.gameObject.transform.position.z;
     }
     
     public void SetPlayerData(PlayerData data)

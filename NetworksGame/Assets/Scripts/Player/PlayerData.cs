@@ -7,7 +7,7 @@ using UnityEngine;
 public class PlayerData
 {
     public int playerId;
-    //public string playerName; // Character name
+    public string playerName; // Character name
     public float[] position;
     //public float[] rotation;
     //public float[] scale;
@@ -16,7 +16,8 @@ public class PlayerData
 
     public PlayerData(Player player)
     {
-        //playerName = player.characterName;
+        playerId = player.id;
+        playerName = player.name;
 
         position = new float[3];
         position[0] = player.transform.position.x;
