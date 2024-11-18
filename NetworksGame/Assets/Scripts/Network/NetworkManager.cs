@@ -208,6 +208,13 @@ namespace HyperStrike
             // Broadcast the updated player position to all clients
             foreach (User u in nm_ConnectedUsers)
             {
+                if (u.endPoint.ToString() != nm_User.endPoint.ToString())
+                {
+                    string playerJson = JsonUtility.ToJson(player.playerData);
+                    Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
+                    sendThread.Start();
+                }
+
                 if (u.endPoint.ToString() != Remote.ToString())
                 {
                     string playerJson = JsonUtility.ToJson(user.playerData);
@@ -283,7 +290,7 @@ namespace HyperStrike
 
                 PlayerData pData = new PlayerData();
                 JsonUtility.FromJsonOverwrite(receivedJson, pData);
-                nm_StatusText = $"\nReceived data from {player.playerData.playerName}: {player.playerData.position[0]}, {player.playerData.position[1]}, {player.playerData.position[2]}";
+                nm_StatusText = $"\nReceived data from {pData.playerName}: {pData.position[0]}, {pData.position[1]}, {pData.position[2]}";
 
                 MainThreadInvoker.Invoke(() => 
                 {
