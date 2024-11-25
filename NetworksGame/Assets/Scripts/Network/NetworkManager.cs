@@ -17,41 +17,37 @@ namespace HyperStrike
         public static NetworkManager instance { get; private set; }
         void Awake() { if (instance == null) instance = this; }
 
-        Socket nm_Socket;
-
-        public IPEndPoint serverEndPoint;
+        [HideInInspector]public IPEndPoint nm_ServerEndPoint;
 
         // Network Threads
-        Thread nm_MainNetworkThread;
+        //Thread nm_MainNetworkThread;
 
         User nm_User;
-        bool instantiateNewPlayer = false;
+        [HideInInspector] public bool nm_InstantiateNewPlayer = false;
 
-        public GameObject UItextObj;
-        TextMeshProUGUI UItext;
-        public string nm_StatusText;
-        bool creatingPlayer = false;
-        bool connected = false;
+        public GameObject nm_UItextObj;
+        TextMeshProUGUI nm_UItext;
+        [HideInInspector] public string nm_StatusText;
+        [HideInInspector] public bool nm_Connected = false;
 
         [SerializeField]GameObject clientInstancePrefab;
 
         [SerializeField]GameObject playerPrefab;
-        public Player player;
-        PlayerData receivedPlayerData;
+        [HideInInspector] public Player player;
 
         // Start is called before the first frame update
         void Start()
         {
-            UItext = UItextObj.GetComponent<TextMeshProUGUI>();
+            nm_UItext = nm_UItextObj.GetComponent<TextMeshProUGUI>();
             player = new Player(playerPrefab.GetComponent<Player>());
-            serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
+            nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
         void Update()
         {
-            UItext.text = nm_StatusText;
+            nm_UItext.text = nm_StatusText;
 
-            if (SceneManager.GetActiveScene().name == "PitchScene" && creatingPlayer)
+            if (SceneManager.GetActiveScene().name == "PitchScene" && nm_InstantiateNewPlayer)
             {
                 string name = player.playerData.playerName;
                 player = GameObject.Find("Player").GetComponent<Player>();
@@ -60,13 +56,20 @@ namespace HyperStrike
                     player.playerData.playerName = name;
                     player.name = name;
                     player.updateGO = true;
-                    creatingPlayer = false;
+                    nm_InstantiateNewPlayer = false;
                 }
             }
 
             
         }
 
-        
+        public void InstatiateGO(PlayerData data)
+        {
+            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
+            goInstance.name = data.playerName;
+            goInstance.GetComponent<Player>().playerData = data;
+            Debug.Log("GO CREATED: " + data.playerName);
+        }
+
     }
 }

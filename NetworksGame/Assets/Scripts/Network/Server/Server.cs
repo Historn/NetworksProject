@@ -16,6 +16,8 @@ namespace HyperStrike
         User server_User;
         List<User> server_ConnectedUsers = new List<User>();
 
+        PlayerData server_ReceivedPlayerData;
+
         public void StartHost(string username)
         {
             NetworkManager.instance.nm_StatusText += "Creating Host Server...";
@@ -31,14 +33,14 @@ namespace HyperStrike
             server_User = new User();
             server_User.userId = 0; // Is the first user connected
             server_User.name = username; // Get from input
-            server_User.endPoint = serverEndPoint;
+            server_User.endPoint = NetworkManager.instance.nm_ServerEndPoint;
             server_User.firstConnection = true;
             server_ConnectedUsers.Add(server_User);
 
             NetworkManager.instance.nm_StatusText += "Host User created...";
 
-            Thread newConnection = new Thread(ReceiveHost);
-            newConnection.Start();
+            Thread mainThread = new Thread(ReceiveHost);
+            mainThread.Start();
         }
 
         void SendHost(EndPoint Remote, string message)
@@ -57,7 +59,7 @@ namespace HyperStrike
 
         void ReceiveHost()
         {
-            creatingPlayer = true;
+            NetworkManager.instance.nm_InstantiateNewPlayer = true;
 
             byte[] data = new byte[1024];
             int recv = 0;
@@ -97,11 +99,11 @@ namespace HyperStrike
                     newUser.endPoint = Remote;
                     newUser.playerData.playerId = server_ConnectedUsers.Count;
 
-                    receivedPlayerData = newUser.playerData;
+                    server_ReceivedPlayerData = newUser.playerData;
 
                     MainThreadInvoker.Invoke(() =>
                     {
-                        InstatiateGO(newUser.playerData);
+                        NetworkManager.instance.InstatiateGO(newUser.playerData);
                     });
 
                     NetworkManager.instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
