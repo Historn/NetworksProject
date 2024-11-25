@@ -10,165 +10,118 @@ using System;
 
 public class Client : MonoBehaviour
 {
-    Socket socket;
-    string clientText;
-
-    Thread mainThread;
-    bool connected = false;
-    bool waiting = false;
-
-    private UdpClient client;
-    private IPEndPoint serverEndPoint;
-    private IPEndPoint clientEndPoint;
-
-    public Transform playerTransform;
-
+    
     // Start is called before the first frame update
     void Start()
     {
-        mainThread = new Thread(Send);
-        client = new UdpClient();
-        serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
-    }
-
-    public void StartClient()
-    {
-        mainThread.Start();
+        
     }
 
     void Update()
     {
-        if (!mainThread.IsAlive && connected)
+        // Capture player data on the main thread
+        if (player != null && connected)
         {
-            StartCoroutine(waiter());
-        }
-
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            Thread sendThread = new Thread(Send);
+            // Use the captured data in a background thread
+            Thread sendThread = new Thread(() => SendClient());
             sendThread.Start();
         }
     }
 
-    void Send()
+    public void StartClient(string username)
+    {
+        player.playerData.playerId = -1;
+        player.playerData.playerName = username;
+
+        nm_MainNetworkThread = new Thread(SendClient);
+        nm_MainNetworkThread.Start();
+    }
+
+    void SendClient()
     {
         try
         {
-            if (!waiting)
+            // IP EndPoint Default to Local: "127.0.0.1" Port: 9050
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
+
+            // Detect if the user is not waiting and in the Menu (or Finished Match?)
+            if (!connected)
             {
-                //Unlike with TCP, we don't "connect" first,
-                //we are going to send a message to establish our communication so we need an endpoint
-                //We need the server's IP and the port we've binded it to before
-                //Again, initialize the socket
+                nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                nm_Socket.Connect(ipep);
+                nm_StatusText += "\nConnected to the host";
 
-                socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.Connect(serverEndPoint);
-                clientText += "\nConnected to the server";
-
-                //Send the Handshake to the server's endpoint.
-                //This time, our UDP socket doesn't have it, so we have to pass it
-                //as a parameter on it's SendTo() method
-                socket.SendTo(Encoding.ASCII.GetBytes("UiInputUsername.text"), serverEndPoint);
+                SendPlayerData();
 
                 //We'll wait for a server response,
                 //so you can already start the receive thread
-                Thread receive = new Thread(Receive);
+                Thread receive = new Thread(ReceiveClient);
                 receive.Start();
 
                 connected = true;
+                creatingPlayer = true;
             }
             else
             {
-                //socket.SendTo(Encoding.ASCII.GetBytes(UiInputMessage.text), serverEndPoint);
                 // Send player data info using JSON serialization
                 SendPlayerData();
             }
         }
         catch (SocketException ex)
         {
-            clientText += $"\nError sending message to the server: {ex.Message}";
+            nm_StatusText += $"\nError sending message to the server: {ex.Message}";
         }
     }
 
-    //Same as in the server, in this case the remote is a bit useless
-    //since we already know it's the server who's communicating with us
-    void Receive()
+    private void SendPlayerData()
+    {
+        string jsonData = JsonUtility.ToJson(player.playerData);
+
+        // Send JSON string as bytes
+        byte[] data = Encoding.UTF8.GetBytes(jsonData);
+        nm_Socket.SendTo(data, serverEndPoint);
+    }
+
+    void ReceiveClient()
     {
         byte[] data = new byte[1024];
         while (true)
         {
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint Remote = (EndPoint)(sender);
-            int recv = socket.ReceiveFrom(data, ref Remote);
+            int recv = nm_Socket.ReceiveFrom(data, ref Remote);
+            string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
-            clientText += "\n" + Encoding.ASCII.GetString(data, 0, recv);
+            PlayerData pData = new PlayerData();
+            JsonUtility.FromJsonOverwrite(receivedJson, pData);
+            nm_StatusText = $"\nReceived data from {pData.playerName}: {pData.position[0]}, {pData.position[1]}, {pData.position[2]}";
+
+            MainThreadInvoker.Invoke(() =>
+            {
+                GameObject go = GameObject.Find(pData.playerName);
+                Debug.Log("GO FOUND: " + pData.playerName);
+
+                if (go != null)
+                {
+                    Player p = go.GetComponent<Player>();
+                    p.updateGO = true;
+                    p.playerData = pData;
+                    Debug.Log("GO FOUND: " + p.playerData.playerName);
+                }
+                else
+                {
+                    InstatiateGO(pData);
+                }
+            });
         }
     }
 
-    private void SendPlayerData()
+    void InstatiateGO(PlayerData data)
     {
-        //PlayerMovement movement = player.GetComponent<PlayerMovement>().gr;
-        //bool isJumping = Input.GetKey(KeyCode.Space); // Example jump state
-        //Vector3 pos = new Vector3(1,0,1);
-
-        //// Create and serialize player data
-        //PlayerData playerData = new PlayerData();
-        //string jsonData = JsonUtility.ToJson(playerData);
-
-        //// Send JSON string as bytes
-        //byte[] buffer = Encoding.UTF8.GetBytes(jsonData);
-        //client.Send(buffer, buffer.Length, serverEndPoint);
-    }
-
-    private void BeginReceive()
-    {
-        client.BeginReceive(OnReceive, null);
-    }
-
-
-    private void OnReceive(IAsyncResult ar)
-    {
-        byte[] data = client.EndReceive(ar, ref clientEndPoint);
-        string jsonData = Encoding.UTF8.GetString(data);
-
-        UpdateOtherPlayerPosition(jsonData);
-
-        // Continue receiving
-        BeginReceive();
-    }
-
-    private void UpdateOtherPlayerPosition(string jsonData)
-    {
-        // Deserialize JSON data to PlayerData object
-        PlayerData otherPlayerData = JsonUtility.FromJson<PlayerData>(jsonData);
-
-        // Acces to server users list
-        //foreach (User u in users)
-        //{
-
-        //}
-
-        // Use deserialized data to update opponent's transform
-        // opponentTransform.position = new Vector3(otherPlayerData.posX, otherPlayerData.posY, otherPlayerData.posZ);
-
-        // Handle jump state if needed
-        // bool isOtherPlayerJumping = otherPlayerData.isJumping;
-    }
-
-    void OnDestroy()
-    {
-        client.Close();
-    }
-
-    IEnumerator waiter()
-    {
-        yield return new WaitForSeconds(4);
-        if (connected)
-        {
-            SceneManager.LoadScene("Exercise1_WaitingRoom");
-            connected = false;
-            waiting = true;
-        }
+        GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
+        goInstance.name = data.playerName;
+        goInstance.GetComponent<Player>().playerData = data;
+        Debug.Log("GO CREATED: " + data.playerName);
     }
 }
 

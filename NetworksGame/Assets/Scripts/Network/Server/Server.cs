@@ -7,125 +7,165 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 
-public class Server : MonoBehaviour
+namespace HyperStrike
 {
-    Socket socket;
-
-    string serverText;
-
-    public struct User
+    public class Server : MonoBehaviour
     {
-        public string name;
-        public EndPoint endPoint;
-        public bool firstConnection;
-        public PlayerData playerData;
-    }
+        Socket server_Socket;
 
-    List<User> users = new List<User>();
+        User server_User;
+        List<User> server_ConnectedUsers = new List<User>();
 
-    void Start()
-    {
-    }
-
-    public void startServer()
-    {
-        serverText = "Starting UDP Server...";
-
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
-        socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        socket.Bind(ipep);
-
-        Thread newConnection = new Thread(Receive);
-        newConnection.Start();
-    }
-
-    void Update()
-    {
-    }
-
-    void Receive()
-    {
-        byte[] data = new byte[1024];
-        int recv = 0;
-
-        serverText += "\nWaiting for new Client...";
-
-        IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-        EndPoint Remote = (EndPoint)(sender);
-
-        while (true)
+        public void StartHost(string username)
         {
-            User newUser = new User();
-            newUser.firstConnection = true;
+            NetworkManager.instance.nm_StatusText += "Creating Host Server...";
 
-            data = new byte[1024];
-            recv = socket.ReceiveFrom(data, ref Remote);
-            string receivedMessage = Encoding.ASCII.GetString(data, 0, recv);
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
+            server_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            server_Socket.Bind(ipep);
 
-            foreach (User user in users)
+            NetworkManager.instance.player.playerData.playerId = 0;
+            NetworkManager.instance.player.playerData.playerName = username;
+
+            // Create Host User as first user connected
+            server_User = new User();
+            server_User.userId = 0; // Is the first user connected
+            server_User.name = username; // Get from input
+            server_User.endPoint = serverEndPoint;
+            server_User.firstConnection = true;
+            server_ConnectedUsers.Add(server_User);
+
+            NetworkManager.instance.nm_StatusText += "Host User created...";
+
+            Thread newConnection = new Thread(ReceiveHost);
+            newConnection.Start();
+        }
+
+        void SendHost(EndPoint Remote, string message)
+        {
+            byte[] data = Encoding.ASCII.GetBytes(message);
+
+            try
             {
-                if (user.endPoint.ToString() == Remote.ToString())
+                server_Socket.SendTo(data, Remote);
+            }
+            catch (SocketException ex)
+            {
+                Debug.Log($"Send host error: {ex.Message}");
+            }
+        }
+
+        void ReceiveHost()
+        {
+            creatingPlayer = true;
+
+            byte[] data = new byte[1024];
+            int recv = 0;
+
+            NetworkManager.instance.nm_StatusText += "\nWaiting for new Client...";
+            Debug.Log(NetworkManager.instance.nm_StatusText);
+
+            IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+            EndPoint Remote = (EndPoint)(sender);
+
+            while (true)
+            {
+                User newUser = new User();
+                newUser.firstConnection = true;
+                newUser.playerData = NetworkManager.instance.player.playerData;
+
+                data = new byte[1024];
+                recv = server_Socket.ReceiveFrom(data, ref Remote);
+                string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
+                Debug.Log("Rceived: " + receivedJson);
+
+                foreach (User user in server_ConnectedUsers)
                 {
-                    newUser = user;
+                    if (user.endPoint.ToString() == Remote.ToString())
+                    {
+                        newUser = user;
+                        newUser.firstConnection = false;
+                        break;
+                    }
+                }
+
+                if (newUser.firstConnection)
+                {
+                    JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
+                    newUser.name = newUser.playerData.playerName;
+                    newUser.userId = server_ConnectedUsers.Count;
+                    newUser.endPoint = Remote;
+                    newUser.playerData.playerId = server_ConnectedUsers.Count;
+
+                    receivedPlayerData = newUser.playerData;
+
+                    MainThreadInvoker.Invoke(() =>
+                    {
+                        InstatiateGO(newUser.playerData);
+                    });
+
+                    NetworkManager.instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
+
+                    // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
+                    Debug.Log(NetworkManager.instance.player.playerData.playerName);
+                    string packet = JsonUtility.ToJson(NetworkManager.instance.player.playerData);
+                    Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
+                    serverAnswer.Start();
+
+                    string packetPlayerData = JsonUtility.ToJson(newUser.playerData);
+
+                    foreach (User user in server_ConnectedUsers)
+                    {
+                        Thread answer = new Thread(() => SendHost(user.endPoint, packetPlayerData));
+                        answer.Start();
+                    }
                     newUser.firstConnection = false;
-                    break;
+                    server_ConnectedUsers.Add(newUser);
                 }
-            }
-
-            if (newUser.firstConnection)
-            {
-                newUser.name = receivedMessage;
-                newUser.endPoint = Remote;
-                serverText += $"\n{newUser.name} joined the server called UDP Server";
-
-                Thread serverAnswer = new Thread(() => Send(Remote, "Welcome to the UDP Server: " + newUser.name));
-                serverAnswer.Start();
-
-                foreach (User user in users)
+                else if (newUser.endPoint.ToString() != server_User.endPoint.ToString())
                 {
-                    Thread answer = new Thread(() => Send(user.endPoint, "New User connected: " + newUser.name));
-                    answer.Start();
+                    HandlePlayerData(newUser, receivedJson, Remote);
                 }
-                newUser.firstConnection = false;
-                users.Add(newUser);
             }
-            else
+        }
+
+        void HandlePlayerData(User user, string jsonData, EndPoint Remote)
+        {
+            JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
+            NetworkManager.instance.nm_StatusText = $"\nReceived data from {user.name}: {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
+
+            MainThreadInvoker.Invoke(() =>
             {
-                HandlePlayerData(newUser, receivedMessage, Remote);
+                GameObject go = GameObject.Find(user.playerData.playerName);
+
+                if (go != null)
+                {
+                    Player p = go.GetComponent<Player>();
+                    p.updateGO = true;
+                    p.playerData = user.playerData;
+                    Debug.Log("GO FOUND: " + p.playerData.position[0] + " " + p.playerData.position[1] + " " + p.playerData.position[2]);
+                }
+            });
+
+            // Broadcast the updated player position to all clients
+            foreach (User u in server_ConnectedUsers)
+            {
+                if (u.endPoint.ToString() != server_User.endPoint.ToString())
+                {
+                    string playerJson = JsonUtility.ToJson(NetworkManager.instance.player.playerData);
+                    Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
+                    sendThread.Start();
+                }
+
+                if (u.endPoint.ToString() != Remote.ToString())
+                {
+                    string playerJson = JsonUtility.ToJson(user.playerData);
+                    Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
+                    sendThread.Start();
+                }
             }
-        }
-
-    }
-
-    void HandlePlayerData(User user, string jsonData, EndPoint Remote)
-    {
-        //PlayerData playerData = JsonUtility.FromJson<PlayerData>(jsonData);
-        //user.playerData = playerData;
-        //serverText += $"\nReceived position from {user.name}: {playerData.playerTransform.position.x}, {playerData.playerTransform.position.y}, {playerData.playerTransform.position.z}";
-
-        //// Broadcast the updated player position to all clients
-        //foreach (User u in users)
-        //{
-        //    if (u.endPoint.ToString() != Remote.ToString())
-        //    {
-        //        string playerJson = JsonUtility.ToJson(user.playerData);
-        //        Thread sendThread = new Thread(() => Send(u.endPoint, playerJson));
-        //        sendThread.Start();
-        //    }
-        //}
-    }
-
-    void Send(EndPoint Remote, string message)
-    {
-        byte[] data = Encoding.ASCII.GetBytes(message);
-
-        try
-        {
-            socket.SendTo(data, Remote);
-        }
-        catch (SocketException ex)
-        {
-            Debug.Log($"Send error: {ex.Message}");
         }
     }
 }
+
+
