@@ -36,7 +36,7 @@ public class MenuManager : MonoBehaviour
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
         NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(username.text);
         NetworkManager.instance.gameObject.GetComponent<Client>().enabled = false;
-        Debug.Log(username.text);
+        Debug.Log("Debug: Creating Game " + username.text);
     }
     
     public void JoinGame(TMP_InputField username)
@@ -44,7 +44,7 @@ public class MenuManager : MonoBehaviour
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
         NetworkManager.instance.gameObject.GetComponent<Client>().StartClient(username.text);
         NetworkManager.instance.gameObject.GetComponent<Server>().enabled = false;
-        Debug.Log(username.text);
+        Debug.Log("Debug: Joining Game "+username.text);
     }
 
     public void Quit()

@@ -37,7 +37,7 @@ public class Player : MonoBehaviour
     {
         if (updateGO)
         {
-            SetPlayerData();
+            UpdateGameObjectData();
             updateGO = false;
         }
         UpdatePlayerData();
@@ -50,7 +50,7 @@ public class Player : MonoBehaviour
         playerData.position[2] = this.gameObject.transform.position.z;
     }
     
-    public void SetPlayerData()
+    public void UpdateGameObjectData()
     {
         this.gameObject.transform.position = new Vector3(playerData.position[0], playerData.position[1], playerData.position[2]);
     }

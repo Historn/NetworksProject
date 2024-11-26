@@ -59,8 +59,6 @@ namespace HyperStrike
 
         void ReceiveHost()
         {
-            NetworkManager.instance.nm_InstantiateNewPlayer = true;
-
             byte[] data = new byte[1024];
             int recv = 0;
 
@@ -87,12 +85,14 @@ namespace HyperStrike
                     {
                         newUser = user;
                         newUser.firstConnection = false;
+                        NetworkManager.instance.nm_InstantiateNewPlayer = false;
                         break;
                     }
                 }
 
                 if (newUser.firstConnection)
                 {
+                    NetworkManager.instance.nm_InstantiateNewPlayer = true;
                     JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
                     newUser.name = newUser.playerData.playerName;
                     newUser.userId = server_ConnectedUsers.Count;

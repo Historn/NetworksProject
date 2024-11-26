@@ -4,7 +4,7 @@ using UnityEngine;
 
 public interface ISerializable
 {
-    //JsonUtility jsonUtility;
-    void Serialize();
+    // First convert it to Json then to byte[] + add headers?
+    byte[] Serialize();
     void Deserialize();
 }

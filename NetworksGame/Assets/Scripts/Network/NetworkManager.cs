@@ -49,6 +49,7 @@ namespace HyperStrike
 
             if (SceneManager.GetActiveScene().name == "PitchScene" && nm_InstantiateNewPlayer)
             {
+                Debug.Log(player.playerData.playerName);
                 string name = player.playerData.playerName;
                 player = GameObject.Find("Player").GetComponent<Player>();
                 if (player != null)
@@ -59,8 +60,6 @@ namespace HyperStrike
                     nm_InstantiateNewPlayer = false;
                 }
             }
-
-            
         }
 
         public void InstatiateGO(PlayerData data)
@@ -70,6 +69,5 @@ namespace HyperStrike
             goInstance.GetComponent<Player>().playerData = data;
             Debug.Log("GO CREATED: " + data.playerName);
         }
-
     }
 }

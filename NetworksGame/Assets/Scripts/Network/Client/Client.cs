@@ -81,13 +81,16 @@ namespace HyperStrike
 
         void ReceiveClient()
         {
+            Debug.Log("Client receiving");
             byte[] data = new byte[1024];
             while (true)
             {
                 IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
                 EndPoint Remote = (EndPoint)(sender);
                 int recv = client_Socket.ReceiveFrom(data, ref Remote);
+                Debug.Log("Packet received " + recv.ToString());
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
+                
 
                 PlayerData pData = new PlayerData();
                 JsonUtility.FromJsonOverwrite(receivedJson, pData);
