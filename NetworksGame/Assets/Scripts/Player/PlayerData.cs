@@ -40,5 +40,10 @@ public class PlayerData
         //playerState = (int)player.state;
     }
 
-    public PlayerData() { playerName = ""; }
+    public PlayerData()
+    {
+        playerId = -1;
+        playerName = "{PLAYER NAME ERROR}";
+        position = new float[3];
+    }
 }

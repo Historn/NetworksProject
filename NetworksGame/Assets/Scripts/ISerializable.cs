@@ -2,9 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface ISerializable
+namespace HyperStrike
 {
-    // First convert it to Json then to byte[] + add headers?
-    byte[] Serialize();
-    void Deserialize();
+    public interface ISerializable
+    {
+        byte[] Serialize();
+        void Deserialize(byte[] data);
+    }
 }

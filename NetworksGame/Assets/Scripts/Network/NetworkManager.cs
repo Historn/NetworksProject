@@ -19,12 +19,6 @@ namespace HyperStrike
 
         [HideInInspector]public IPEndPoint nm_ServerEndPoint;
 
-        // Network Threads
-        //Thread nm_MainNetworkThread;
-
-        User nm_User;
-        [HideInInspector] public bool nm_InstantiateNewPlayer = false;
-
         public GameObject nm_UItextObj;
         TextMeshProUGUI nm_UItext;
         [HideInInspector] public string nm_StatusText;
@@ -32,34 +26,19 @@ namespace HyperStrike
 
         [SerializeField]GameObject clientInstancePrefab;
 
-        [SerializeField]GameObject playerPrefab;
-        [HideInInspector] public Player player;
+        public PlayerData nm_PlayerData;
 
         // Start is called before the first frame update
         void Start()
         {
             nm_UItext = nm_UItextObj.GetComponent<TextMeshProUGUI>();
-            player = new Player(playerPrefab.GetComponent<Player>());
+            nm_PlayerData = new PlayerData();
             nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
         void Update()
         {
             nm_UItext.text = nm_StatusText;
-
-            if (SceneManager.GetActiveScene().name == "PitchScene" && nm_InstantiateNewPlayer)
-            {
-                Debug.Log(player.playerData.playerName);
-                string name = player.playerData.playerName;
-                player = GameObject.Find("Player").GetComponent<Player>();
-                if (player != null)
-                {
-                    player.playerData.playerName = name;
-                    player.name = name;
-                    player.updateGO = true;
-                    nm_InstantiateNewPlayer = false;
-                }
-            }
         }
 
         public void InstatiateGO(PlayerData data)

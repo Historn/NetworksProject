@@ -1,3 +1,4 @@
+using HyperStrike;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,13 +6,6 @@ using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
 {
-    public Player(Player player)
-    {
-        this.id = player.id;
-        this.playerData = player.playerData;
-        this.state = player.state;
-    }
-
     public enum PlayerState
     {
         IDLE = 0,
@@ -21,18 +15,21 @@ public class Player : MonoBehaviour
     }
 
     public int id;
-    public PlayerState state;
     public PlayerMovement playerMovement;
     public bool updateGO = false;
+
+
+    // DATA TO SERIALIZE FROM PLAYER
+    public PlayerState state;
     public PlayerData playerData;
 
-    // Start is called before the first frame update
+
     void Start()
     {
-        //playerData = new PlayerData(this);
+
     }
 
-    // Update is called once per frame
+
     void Update()
     {
         if (updateGO)

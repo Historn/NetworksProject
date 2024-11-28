@@ -17,7 +17,7 @@ namespace HyperStrike
         void Update()
         {
             // Capture player data on the main thread
-            if (NetworkManager.instance.player != null && NetworkManager.instance.nm_Connected)
+            if (NetworkManager.instance.nm_PlayerData != null && NetworkManager.instance.nm_Connected)
             {
                 // Use the captured data in a background thread
                 Thread sendThread = new Thread(() => SendClient());
@@ -27,8 +27,8 @@ namespace HyperStrike
 
         public void StartClient(string username)
         {
-            NetworkManager.instance.player.playerData.playerId = -1;
-            NetworkManager.instance.player.playerData.playerName = username;
+            NetworkManager.instance.nm_PlayerData.playerId = -1;
+            NetworkManager.instance.nm_PlayerData.playerName = username;
 
             Thread mainThread = new Thread(SendClient);
             mainThread.Start();
@@ -42,7 +42,7 @@ namespace HyperStrike
                 IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
 
                 // Detect if the user is not waiting and in the Menu (or Finished Match?)
-                if (!NetworkManager.instance.nm_InstantiateNewPlayer)
+                if (!NetworkManager.instance.nm_Connected)
                 {
                     client_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                     client_Socket.Connect(ipep);
@@ -50,16 +50,16 @@ namespace HyperStrike
 
                     SendPlayerData();
 
+                    NetworkManager.instance.nm_Connected = true;
+
                     //We'll wait for a server response,
-                    //so you can already start the receive thread
+                    //Maybe first receive Users List then start the receive loop
                     Thread receive = new Thread(ReceiveClient);
                     receive.Start();
-
-                    NetworkManager.instance.nm_Connected = true;
-                    NetworkManager.instance.nm_InstantiateNewPlayer = true;
                 }
                 else
                 {
+                    Debug.Log("Sending Player Updated Data");
                     // Send player data info using JSON serialization
                     SendPlayerData();
                 }
@@ -72,7 +72,7 @@ namespace HyperStrike
 
         private void SendPlayerData()
         {
-            string jsonData = JsonUtility.ToJson(NetworkManager.instance.player.playerData);
+            string jsonData = JsonUtility.ToJson(NetworkManager.instance.nm_PlayerData);
 
             // Send JSON string as bytes
             byte[] data = Encoding.UTF8.GetBytes(jsonData);
@@ -88,9 +88,9 @@ namespace HyperStrike
                 IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
                 EndPoint Remote = (EndPoint)(sender);
                 int recv = client_Socket.ReceiveFrom(data, ref Remote);
-                Debug.Log("Packet received " + recv.ToString());
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
-                
+
+                Debug.Log("Packet received " + receivedJson);
 
                 PlayerData pData = new PlayerData();
                 JsonUtility.FromJsonOverwrite(receivedJson, pData);

@@ -20,13 +20,9 @@ namespace HyperStrike
     [SerializeField]
     public class GameManager : MonoBehaviour
     {
-        public static GameManager instance { get; private set; } // Singleton
+        public static GameManager instance { get; private set; }
 
         void Awake() { if (instance == null) instance = this; }
-
-        /// <summary>
-        /// CHANGE THIS CLASS TO BE MODIFIABLE BY PLAYERS TO CREATE CUSTOM MATCHES
-        /// </summary>
 
         // Setting the match
         uint gm_MaxPlayers = 6;
@@ -56,7 +52,7 @@ namespace HyperStrike
             switch (gm_GameState)
             {
                 case GameState.NONE:
-                    SceneManager.LoadScene("MainTitle");
+                    StartCoroutine(CustomSceneManager.LoadYourAsyncScene("MainTitle"));
                     gm_GameState = GameState.TITLE;
                     break;
                 case GameState.TITLE:
@@ -64,14 +60,14 @@ namespace HyperStrike
                 case GameState.MENU:
                     break;
                 case GameState.WAITING_ROOM:
-                    SceneManager.LoadScene("PitchScene");
+                    StartCoroutine(CustomSceneManager.LoadYourAsyncScene("PitchScene"));
                     menuPanelObj.SetActive(false);
                     break;
                 case GameState.IN_GAME:
                     break;
                 case GameState.PAUSE:
                     break;
-                case GameState.WON: // Maybe change to finished match?
+                case GameState.WON:
                     break;
                 case GameState.LOOSE:
                     break;

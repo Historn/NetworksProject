@@ -14,7 +14,9 @@ namespace HyperStrike
         Socket server_Socket;
 
         User server_User;
-        List<User> server_ConnectedUsers = new List<User>();
+        List<User> server_ConnectedUsers = new List<User>(); // Change to a Dictionary based on the Endpoint, User
+        //Dictionary<EndPoint, User> server_ConnectedUsers;
+
 
         PlayerData server_ReceivedPlayerData;
 
@@ -26,18 +28,18 @@ namespace HyperStrike
             server_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             server_Socket.Bind(ipep);
 
-            NetworkManager.instance.player.playerData.playerId = 0;
-            NetworkManager.instance.player.playerData.playerName = username;
-
             // Create Host User as first user connected
             server_User = new User();
             server_User.userId = 0; // Is the first user connected
             server_User.name = username; // Get from input
             server_User.endPoint = NetworkManager.instance.nm_ServerEndPoint;
-            server_User.firstConnection = true;
+            server_User.firstConnection = false;
             server_ConnectedUsers.Add(server_User);
 
-            NetworkManager.instance.nm_StatusText += "Host User created...";
+            NetworkManager.instance.nm_PlayerData.playerId = 0;
+            NetworkManager.instance.nm_PlayerData.playerName = username;
+
+            NetworkManager.instance.nm_StatusText += $"Host User created with name {username}";
 
             Thread mainThread = new Thread(ReceiveHost);
             mainThread.Start();
@@ -59,6 +61,9 @@ namespace HyperStrike
 
         void ReceiveHost()
         {
+
+            // TENGO QUE AÑADIR ALGO PARA CAMBIAR EL PLAYER AL CARGAR ESCENA
+
             byte[] data = new byte[1024];
             int recv = 0;
 
@@ -72,12 +77,12 @@ namespace HyperStrike
             {
                 User newUser = new User();
                 newUser.firstConnection = true;
-                newUser.playerData = NetworkManager.instance.player.playerData;
+                newUser.playerData = new PlayerData();
 
                 data = new byte[1024];
                 recv = server_Socket.ReceiveFrom(data, ref Remote);
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
-                Debug.Log("Rceived: " + receivedJson);
+                Debug.Log("Received: " + receivedJson);
 
                 foreach (User user in server_ConnectedUsers)
                 {
@@ -85,14 +90,12 @@ namespace HyperStrike
                     {
                         newUser = user;
                         newUser.firstConnection = false;
-                        NetworkManager.instance.nm_InstantiateNewPlayer = false;
                         break;
                     }
                 }
 
                 if (newUser.firstConnection)
                 {
-                    NetworkManager.instance.nm_InstantiateNewPlayer = true;
                     JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
                     newUser.name = newUser.playerData.playerName;
                     newUser.userId = server_ConnectedUsers.Count;
@@ -109,8 +112,7 @@ namespace HyperStrike
                     NetworkManager.instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
 
                     // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
-                    Debug.Log(NetworkManager.instance.player.playerData.playerName);
-                    string packet = JsonUtility.ToJson(NetworkManager.instance.player.playerData);
+                    string packet = JsonUtility.ToJson(NetworkManager.instance.nm_PlayerData); // I need to set playerData before send it
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
                     serverAnswer.Start();
 
@@ -134,7 +136,7 @@ namespace HyperStrike
         void HandlePlayerData(User user, string jsonData, EndPoint Remote)
         {
             JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
-            NetworkManager.instance.nm_StatusText = $"\nReceived data from {user.name}: {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
+            NetworkManager.instance.nm_StatusText = $"\nReceived data from {user.name}_{user.userId} : {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
 
             MainThreadInvoker.Invoke(() =>
             {
@@ -154,11 +156,12 @@ namespace HyperStrike
             {
                 if (u.endPoint.ToString() != server_User.endPoint.ToString())
                 {
-                    string playerJson = JsonUtility.ToJson(NetworkManager.instance.player.playerData);
+                    string playerJson = JsonUtility.ToJson(NetworkManager.instance.nm_PlayerData);
                     Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
                     sendThread.Start();
                 }
 
+                // Esto hace lo mismo que el de arriba?
                 if (u.endPoint.ToString() != Remote.ToString())
                 {
                     string playerJson = JsonUtility.ToJson(user.playerData);
