@@ -17,7 +17,6 @@ namespace HyperStrike
         List<User> server_ConnectedUsers = new List<User>(); // Change to a Dictionary based on the Endpoint, User
         //Dictionary<EndPoint, User> server_ConnectedUsers;
 
-
         PlayerData server_ReceivedPlayerData;
 
         public void StartHost(string username)
@@ -36,10 +35,12 @@ namespace HyperStrike
             server_User.firstConnection = false;
             server_ConnectedUsers.Add(server_User);
 
+            NetworkManager.instance.SetNetPlayer(username);
+
             NetworkManager.instance.nm_PlayerData.playerId = 0;
             NetworkManager.instance.nm_PlayerData.playerName = username;
 
-            NetworkManager.instance.nm_StatusText += $"Host User created with name {username}";
+            NetworkManager.instance.nm_StatusText += $"\nHost User created with name {username}";
 
             Thread mainThread = new Thread(ReceiveHost);
             mainThread.Start();

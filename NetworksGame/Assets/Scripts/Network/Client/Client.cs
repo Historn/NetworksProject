@@ -27,6 +27,8 @@ namespace HyperStrike
 
         public void StartClient(string username)
         {
+            NetworkManager.instance.SetNetPlayer(username);
+
             NetworkManager.instance.nm_PlayerData.playerId = -1;
             NetworkManager.instance.nm_PlayerData.playerName = username;
 

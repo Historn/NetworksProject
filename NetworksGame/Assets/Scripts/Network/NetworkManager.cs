@@ -48,5 +48,19 @@ namespace HyperStrike
             goInstance.GetComponent<Player>().playerData = data;
             Debug.Log("GO CREATED: " + data.playerName);
         }
+
+        public void SetNetPlayer(string username)
+        {
+            // Set Up Player before starting server
+            GameObject go = GameObject.Find("Player");
+            if (go != null)
+            {
+                go.name = username;
+                Player player = go.GetComponent<Player>();
+                player.playerData.playerName = username;
+                player.playerData.playerId = 0;
+                nm_PlayerData = player.playerData;
+            }
+        }
     }
 }

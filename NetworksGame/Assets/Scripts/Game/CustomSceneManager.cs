@@ -49,10 +49,9 @@ public class CustomSceneManager : MonoBehaviour
     /// <returns></returns>
     public static IEnumerator LoadSceneWithMethodAsync(string scene, Func<object[], Task> method, params object[] args)
     {
-        AsyncOperation op = SceneManager.LoadSceneAsync(scene);
-        op.allowSceneActivation = false;
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(scene);
 
-        while (!op.isDone && op.progress < 0.9f)
+        while (!asyncLoad.isDone)
         {
             yield return null;
         }
@@ -65,7 +64,5 @@ public class CustomSceneManager : MonoBehaviour
                 yield return null; // Wait for async method to complete
             }
         }
-
-        op.allowSceneActivation = true;
     }
 }

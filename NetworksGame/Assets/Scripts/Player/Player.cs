@@ -15,9 +15,7 @@ public class Player : MonoBehaviour
     }
 
     public int id;
-    public PlayerMovement playerMovement;
     public bool updateGO = false;
-
 
     // DATA TO SERIALIZE FROM PLAYER
     public PlayerState state;
@@ -29,7 +27,6 @@ public class Player : MonoBehaviour
 
     }
 
-
     void Update()
     {
         if (updateGO)
@@ -40,14 +37,14 @@ public class Player : MonoBehaviour
         UpdatePlayerData();
     }
 
-    public void UpdatePlayerData()
+    void UpdatePlayerData()
     {
         playerData.position[0] = this.gameObject.transform.position.x;
         playerData.position[1] = this.gameObject.transform.position.y;
         playerData.position[2] = this.gameObject.transform.position.z;
     }
     
-    public void UpdateGameObjectData()
+    void UpdateGameObjectData()
     {
         this.gameObject.transform.position = new Vector3(playerData.position[0], playerData.position[1], playerData.position[2]);
     }

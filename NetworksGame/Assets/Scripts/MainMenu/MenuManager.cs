@@ -39,10 +39,10 @@ public class MenuManager : MonoBehaviour
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
             "PitchScene", 
             async (args) =>
-        {
+            {
             string playerName = args[0] as string;
             NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(playerName);
-        }, 
+            }, 
             username.text));
 
         //NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(username.text);
