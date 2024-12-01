@@ -52,7 +52,7 @@ namespace HyperStrike
             switch (gm_GameState)
             {
                 case GameState.NONE:
-                    StartCoroutine(CustomSceneManager.LoadYourAsyncScene("MainTitle"));
+                    //StartCoroutine(CustomSceneManager.LoadYourAsyncScene("MainTitle"));
                     gm_GameState = GameState.TITLE;
                     break;
                 case GameState.TITLE:
@@ -60,7 +60,7 @@ namespace HyperStrike
                 case GameState.MENU:
                     break;
                 case GameState.WAITING_ROOM:
-                    StartCoroutine(CustomSceneManager.LoadYourAsyncScene("PitchScene"));
+                    //StartCoroutine(CustomSceneManager.LoadYourAsyncScene("PitchScene"));
                     menuPanelObj.SetActive(false);
                     break;
                 case GameState.IN_GAME:

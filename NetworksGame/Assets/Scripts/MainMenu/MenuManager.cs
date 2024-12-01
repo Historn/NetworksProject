@@ -35,7 +35,17 @@ public class MenuManager : MonoBehaviour
     public void CreateGame(TMP_InputField username)
     {
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
-        NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(username.text);
+
+        StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
+            "PitchScene", 
+            async (args) =>
+        {
+            string playerName = args[0] as string;
+            NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(playerName);
+        }, 
+            username.text));
+
+        //NetworkManager.instance.gameObject.GetComponent<Server>().StartHost(username.text);
         NetworkManager.instance.gameObject.GetComponent<Client>().enabled = false;
         Debug.Log("Debug: Creating Game " + username.text);
     }
@@ -43,7 +53,17 @@ public class MenuManager : MonoBehaviour
     public void JoinGame(TMP_InputField username)
     {
         GameManager.instance.SetGameState(GameState.WAITING_ROOM);
-        NetworkManager.instance.gameObject.GetComponent<Client>().StartClient(username.text);
+
+        StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
+            "PitchScene",
+            async (args) =>
+            {
+                string playerName = args[0] as string;
+                NetworkManager.instance.gameObject.GetComponent<Client>().StartClient(playerName);
+            },
+            username.text));
+
+        //NetworkManager.instance.gameObject.GetComponent<Client>().StartClient(username.text);
         NetworkManager.instance.gameObject.GetComponent<Server>().enabled = false;
         Debug.Log("Debug: Joining Game "+username.text);
     }
