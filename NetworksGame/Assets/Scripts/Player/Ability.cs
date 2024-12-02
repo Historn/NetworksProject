@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using UnityEngine;
 
 enum AbilityType
@@ -22,7 +24,8 @@ enum CastType
     UNSTOPPABLE,
 }
 
-public abstract class Ability : MonoBehaviour
+[CreateAssetMenu(fileName = "New Character", menuName = "HyperStrike/Character Data")]
+public abstract class Ability : ScriptableObject
 {
     public string abilityName;
     public float damage;
@@ -38,18 +41,18 @@ public abstract class Ability : MonoBehaviour
     // This method is called to trigger the ability
     public void UseAbility()
     {
-        if (isReady)
-        {
-            StartCoroutine(CastAbility());
-        }
-        else
-        {
-            Debug.Log(abilityName + " is on cooldown.");
-        }
+        //if (isReady)
+        //{
+        //    StartCoroutine(CastAbility());
+        //}
+        //else
+        //{
+        //    Debug.Log(abilityName + " is on cooldown.");
+        //}
     }
 
     // Cast the ability, with optional delay for castTime
-    protected virtual System.Collections.IEnumerator CastAbility()
+    protected virtual IEnumerator CastAbility()
     {
         if (castTime > 0f)
         {
@@ -72,10 +75,10 @@ public abstract class Ability : MonoBehaviour
     {
         isReady = false;
         cooldownTimer = cooldownDuration;
-        StartCoroutine(CooldownCoroutine());
+        //StartCoroutine(CooldownCoroutine());
     }
 
-    private System.Collections.IEnumerator CooldownCoroutine()
+    private IEnumerator CooldownCoroutine()
     {
         while (cooldownTimer > 0f)
         {
