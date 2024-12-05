@@ -117,6 +117,27 @@ namespace HyperStrike
                 });
             }
         }
+
+        //void Acknowledge(ushort sequenceNumber)
+        //{
+        //    var ackPacket = new AckPacket
+        //    {
+        //        SequenceNumber = sequenceNumber
+        //    };
+        //    udpClient.Send(ackPacket.Serialize(), remoteEndPoint);
+        //}
+
+        //void ResendUnacknowledged()
+        //{
+        //    foreach (var unack in unacknowledgedPackets)
+        //    {
+        //        if (unack.TimeoutElapsed())
+        //        {
+        //            udpClient.Send(unack.Data, remoteEndPoint);
+        //        }
+        //    }
+        //}
+
     }
 
 }

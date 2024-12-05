@@ -11,7 +11,7 @@ namespace HyperStrike
 
         public ProjectilePacket()
         {
-            PacketType = 2; // Unique packet type for projectiles
+            Type = PacketType.PROJECTILE; // Unique packet type for projectiles
         }
 
         public override byte[] Serialize()
@@ -19,7 +19,7 @@ namespace HyperStrike
             using (MemoryStream ms = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(ms))
             {
-                writer.Write(PacketType);
+                writer.Write((byte)Type);
                 writer.Write(ProjectileId);
                 writer.Write(ShooterId);
                 foreach (var value in Position) writer.Write(value);
@@ -33,7 +33,7 @@ namespace HyperStrike
             using (MemoryStream ms = new MemoryStream(data))
             using (BinaryReader reader = new BinaryReader(ms))
             {
-                PacketType = reader.ReadInt32();
+                Type = (PacketType)reader.ReadByte();
                 ProjectileId = reader.ReadInt32();
                 ShooterId = reader.ReadInt32();
                 for (int i = 0; i < 3; i++) Position[i] = reader.ReadSingle();

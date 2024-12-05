@@ -10,7 +10,7 @@ namespace HyperStrike
 
         public PlayerDataPacket()
         {
-            PacketType = 1; // Assign a unique packet ID
+            Type = PacketType.PLAYER_DATA; // Assign a unique packet ID
         }
 
         public override byte[] Serialize()
@@ -18,7 +18,7 @@ namespace HyperStrike
             using (MemoryStream ms = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(ms))
             {
-                writer.Write(PacketType);
+                writer.Write((byte)Type);
                 writer.Write(PlayerName);
                 writer.Write(PlayerId);
                 foreach (float pos in Position)
@@ -33,7 +33,7 @@ namespace HyperStrike
             using (MemoryStream ms = new MemoryStream(data))
             using (BinaryReader reader = new BinaryReader(ms))
             {
-                PacketType = reader.ReadInt32();
+                Type = (PacketType)reader.ReadInt32();
                 PlayerName = reader.ReadString();
                 PlayerId = reader.ReadInt32();
                 for (int i = 0; i < 3; i++)
