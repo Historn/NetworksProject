@@ -1,9 +1,13 @@
+using HyperStrike;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Character Data")]
+    public Character character; // Set character data, add needed data here to chara data scriptable object
+
     [Header("Movement")]
     public float movementSpeed;
 
@@ -16,8 +20,11 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("KeyBinds")]
     public KeyCode jumpKey = KeyCode.Space;
-    public KeyCode ability1Key = KeyCode.C;
-    public KeyCode ultimateKey = KeyCode.R;
+    public KeyCode attackKey = KeyCode.Mouse0;
+    public KeyCode ability1Key = KeyCode.Mouse1;
+    public KeyCode ability2Key = KeyCode.LeftShift;
+    public KeyCode ability3Key = KeyCode.E;
+    public KeyCode ultimateKey = KeyCode.Q;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -29,8 +36,6 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask wallMask;
     public bool wallrun;
 
-    //public Transform orientation;
-
     float horizontalInput;
     float verticalInput;
 
@@ -38,6 +43,13 @@ public class PlayerMovement : MonoBehaviour
     Vector3 moveDirection;
 
     Rigidbody rb;
+
+
+    [Header("Attacks")]
+    public GameObject rocketPrefab;
+    float attackCooldown = 0.5f;
+    bool attackReady = true;
+    public float attackOffset = 5f; // Forward offset for the rocket spawn
 
     void Start()
     {
@@ -82,6 +94,15 @@ public class PlayerMovement : MonoBehaviour
             Jump();
             Invoke(nameof(ResetJump), jumpCooldown);    //Delay for jump to reset
         }
+        
+        //Attack
+        if (Input.GetKey(attackKey) && attackReady)
+        {
+            attackReady = false;
+            Attack();
+            Invoke(nameof(ResetAttack), attackCooldown);    //Delay for attack to reset
+        }
+
     }
 
     void MovePlayer()
@@ -119,6 +140,21 @@ public class PlayerMovement : MonoBehaviour
     void ResetJump()
     {
         readyToJump = true;
+    }
+
+    void Attack()
+    {
+        GameObject rocketGO = Instantiate(rocketPrefab, transform.position + playerCam.transform.forward * attackOffset, playerCam.transform.rotation);
+        Projectile rocket = rocketGO.GetComponent<Projectile>();
+        if (rocket != null) 
+        {
+            rocket.playerShooterID = gameObject.GetComponent<Player>().playerData.playerId;
+        }
+    }
+
+    void ResetAttack()
+    {
+        attackReady = true;
     }
 
 }

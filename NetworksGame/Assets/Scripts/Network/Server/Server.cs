@@ -1,10 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading;
-using TMPro;
 using UnityEngine;
 
 namespace HyperStrike
@@ -30,7 +28,7 @@ namespace HyperStrike
             // Create Host User as first user connected
             server_User = new User();
             server_User.userId = 0; // Is the first user connected
-            server_User.name = username; // Get from input
+            server_User.name = username;
             server_User.endPoint = NetworkManager.instance.nm_ServerEndPoint;
             server_User.firstConnection = false;
             server_ConnectedUsers.Add(server_User);
@@ -62,9 +60,6 @@ namespace HyperStrike
 
         void ReceiveHost()
         {
-
-            // TENGO QUE AÑADIR ALGO PARA CAMBIAR EL PLAYER AL CARGAR ESCENA
-
             byte[] data = new byte[1024];
             int recv = 0;
 
@@ -83,7 +78,7 @@ namespace HyperStrike
                 data = new byte[1024];
                 recv = server_Socket.ReceiveFrom(data, ref Remote);
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
-                Debug.Log("Received: " + receivedJson);
+                //Debug.Log("Received: " + receivedJson);
 
                 foreach (User user in server_ConnectedUsers)
                 {
@@ -148,7 +143,7 @@ namespace HyperStrike
                     Player p = go.GetComponent<Player>();
                     p.updateGO = true;
                     p.playerData = user.playerData;
-                    Debug.Log("GO FOUND: " + p.playerData.position[0] + " " + p.playerData.position[1] + " " + p.playerData.position[2]);
+                    //Debug.Log("GO FOUND: " + p.playerData.position[0] + " " + p.playerData.position[1] + " " + p.playerData.position[2]);
                 }
             });
 

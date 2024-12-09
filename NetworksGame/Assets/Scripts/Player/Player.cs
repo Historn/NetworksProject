@@ -11,11 +11,14 @@ public class Player : MonoBehaviour
         IDLE = 0,
         RUNNING,
         JUMPING,
-        SHOOTING
+        SHOOTING,
+        DEAD
     }
 
     public int id;
     public bool updateGO = false;
+
+    float ultimateCharge = 0f;
 
     // DATA TO SERIALIZE FROM PLAYER
     public PlayerState state;
@@ -29,6 +32,13 @@ public class Player : MonoBehaviour
 
     void Update()
     {
+        if(playerData.health <= 0.0f)
+        {
+            state = PlayerState.DEAD;
+            gameObject.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.None; // When Respawning, freeze rotation again.
+            //StartCoroutine("PlayerDead");
+        }
+
         if (updateGO)
         {
             UpdateGameObjectData();
@@ -47,5 +57,12 @@ public class Player : MonoBehaviour
     void UpdateGameObjectData()
     {
         this.gameObject.transform.position = new Vector3(playerData.position[0], playerData.position[1], playerData.position[2]);
+    }
+
+    IEnumerator PlayerDead()
+    {
+        yield return new WaitForSeconds(5f);
+        gameObject.SetActive(false);
+        //Destroy(gameObject);
     }
 }

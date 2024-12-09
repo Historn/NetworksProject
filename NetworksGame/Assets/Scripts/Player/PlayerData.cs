@@ -6,8 +6,9 @@ using UnityEngine;
 [System.Serializable]
 public class PlayerData
 {
-    public int playerId;
-    public string playerName; // Character name
+    public int playerId = 0;
+    public string playerName = ""; // Character name
+    public float health = 100f;
     public float[] position;
     //public float[] rotation;
     //public float[] scale;
@@ -19,6 +20,7 @@ public class PlayerData
         playerId = player.id;
         playerName = player.name;
 
+        health = 100f;
         position = new float[3];
         position[0] = player.transform.position.x;
         position[1] = player.transform.position.y;
@@ -44,6 +46,7 @@ public class PlayerData
     {
         playerId = -1;
         playerName = "{PLAYER NAME ERROR}";
+        health = 100f;
         position = new float[3];
     }
 }
