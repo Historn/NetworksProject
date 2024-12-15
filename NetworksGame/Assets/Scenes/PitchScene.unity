@@ -884,6 +884,10 @@ MonoBehaviour:
   timerText: {fileID: 1448157099}
   localScoreText: {fileID: 727772178}
   visitantScoreText: {fileID: 542880498}
+  localGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
+    type: 3}
+  visitantGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
+    type: 3}
   managerObj: {fileID: 798604540}
   canvasObj: {fileID: 1506973723}
   menuPanelObj: {fileID: 0}

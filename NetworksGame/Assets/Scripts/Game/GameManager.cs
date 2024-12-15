@@ -49,6 +49,10 @@ namespace HyperStrike
         [SerializeField] private TextMeshProUGUI localScoreText;
         [SerializeField] private TextMeshProUGUI visitantScoreText;
 
+        [Header("VFX References")]
+        [SerializeField] private GameObject localGoalVFX;
+        [SerializeField] private GameObject visitantGoalVFX;
+
         public static GameState gm_GameState { get; private set; } = GameState.MENU; // Change for the final
 
         [Header("Objects")]
@@ -127,6 +131,8 @@ namespace HyperStrike
             gm_LocalGoals++;
             UpdateScoreUI();
 
+            TriggerGoalVFX(localGoalVFX);
+
             ResetBallPosition();
         }
 
@@ -135,7 +141,20 @@ namespace HyperStrike
             gm_VisitantGoals++;
             UpdateScoreUI();
 
+            TriggerGoalVFX(visitantGoalVFX);
+
             ResetBallPosition();
+        }
+
+        private void TriggerGoalVFX(GameObject vfxPrefab)
+        {
+            if (vfxPrefab != null)
+            {
+                // Instantiate the VFX at the ball's current position
+                GameObject vfxInstance = Instantiate(vfxPrefab, ball.transform.position, Quaternion.identity);
+
+                Destroy(vfxInstance, 3f);
+            }
         }
 
         private IEnumerator MatchTimer()
