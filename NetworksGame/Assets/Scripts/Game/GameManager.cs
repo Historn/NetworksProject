@@ -49,6 +49,11 @@ namespace HyperStrike
         [SerializeField] private TextMeshProUGUI localScoreText;
         [SerializeField] private TextMeshProUGUI visitantScoreText;
 
+        [Header("3D Scoreboard References")]
+        [SerializeField] private TextMeshPro localScore3DText;
+        [SerializeField] private TextMeshPro visitantScore3DText;
+        [SerializeField] private TextMeshPro timer3DText;
+
         [Header("VFX References")]
         [SerializeField] private GameObject localGoalVFX;
         [SerializeField] private GameObject visitantGoalVFX;
@@ -112,7 +117,10 @@ namespace HyperStrike
             localScoreText.text = $"Local: {gm_LocalGoals}";
             visitantScoreText.text = $"Visitant: {gm_VisitantGoals}";
 
-            Debug.Log($"Updated Score UI - Local: {gm_LocalGoals}, Visitant: {gm_VisitantGoals}");
+            localScore3DText.text = gm_LocalGoals.ToString();
+            visitantScore3DText.text = gm_VisitantGoals.ToString();
+
+            Debug.Log($"Updated Score UI & 3D Text - Local: {gm_LocalGoals}, Visitant: {gm_VisitantGoals}");
         }
 
         private void UpdateTimerUI()
@@ -120,9 +128,13 @@ namespace HyperStrike
             int minutes = Mathf.FloorToInt(currentMatchTime / 60f);
             int seconds = Mathf.FloorToInt(currentMatchTime % 60f);
 
-            timerText.text = $"{minutes:D2}:{seconds:D2}";
+            string timeText = $"{minutes:D2}:{seconds:D2}";
 
-            Debug.Log($"Updated Timer UI - Time Left: {timerText.text}");
+            timerText.text = timeText;
+            timer3DText.text = timeText;
+
+            Debug.Log($"Updated Timer UI & 3D Text - Time Left: {timeText}");
+
             timerText.ForceMeshUpdate();
         }
 
