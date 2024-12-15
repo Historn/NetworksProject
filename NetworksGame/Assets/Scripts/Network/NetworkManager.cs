@@ -32,6 +32,8 @@ namespace HyperStrike
 
 
         // VARIABLES FOR REPLICATION MANAGEMENT
+        public Match nm_Match;
+
         [HideInInspector]
         public Dictionary<int, Player> nm_ActivePlayers = new Dictionary<int, Player>();
         public Dictionary<int, Projectile> nm_ActiveProjectiles = new Dictionary<int, Projectile>();
@@ -72,6 +74,7 @@ namespace HyperStrike
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
                 nm_ActivePlayers.Add(player.Packet.PlayerId, player);
+                Debug.Log("Net Player Set: " + username);
             }
         }
         #endregion

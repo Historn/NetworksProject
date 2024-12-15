@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using static UnityEditorInternal.VersionControl.ListControl;
 
 namespace HyperStrike
 {

@@ -34,7 +34,7 @@ public class MenuManager : MonoBehaviour
 
     public void CreateGame(TMP_InputField username)
     {
-        GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+        GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
             "PitchScene", 
@@ -51,7 +51,7 @@ public class MenuManager : MonoBehaviour
     
     public void JoinGame(TMP_InputField username)
     {
-        GameManager.instance.SetGameState(GameState.WAITING_ROOM);
+        GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
             "PitchScene",

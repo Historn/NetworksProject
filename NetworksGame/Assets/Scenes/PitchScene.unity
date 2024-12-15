@@ -882,42 +882,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 798604542}
-  - component: {fileID: 798604541}
+  - component: {fileID: 798604543}
   m_Layer: 0
-  m_Name: GameManager
+  m_Name: MatchManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &798604541
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 798604540}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0fcfeac868866e74ca87263e6d7c2c75, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  matchDuration: 120
-  ball: {fileID: 1668302403}
-  ballStartPosition: {fileID: 4091108835275995279}
-  timerText: {fileID: 1448157099}
-  localScoreText: {fileID: 727772178}
-  visitantScoreText: {fileID: 542880498}
-  localScore3DText: {fileID: 1272571539}
-  visitantScore3DText: {fileID: 758200269}
-  timer3DText: {fileID: 544202339}
-  localGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
-    type: 3}
-  visitantGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
-    type: 3}
-  managerObj: {fileID: 798604540}
-  canvasObj: {fileID: 1506973723}
-  menuPanelObj: {fileID: 0}
 --- !u!4 &798604542
 Transform:
   m_ObjectHideFlags: 0
@@ -933,6 +905,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &798604543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 798604540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43cad7c2c210197429f4e60ee88daaa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ball: {fileID: 1668302403}
+  ballStartPosition: {fileID: 4091108835275995279}
+  timerText: {fileID: 1448157099}
+  localScoreText: {fileID: 727772178}
+  visitantScoreText: {fileID: 542880498}
+  localScore3DText: {fileID: 1272571539}
+  visitantScore3DText: {fileID: 758200269}
+  timer3DText: {fileID: 544202339}
+  localGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
+    type: 3}
+  visitantGoalVFX: {fileID: 1546897667432260974, guid: 9e8fbbdbe7487924fb7c07a7087dfc20,
+    type: 3}
 --- !u!1 &970249464
 GameObject:
   m_ObjectHideFlags: 0
@@ -2468,7 +2464,7 @@ Canvas:
   m_RenderMode: 0
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -3672,12 +3668,22 @@ PrefabInstance:
         type: 3}
       propertyPath: gameManager
       value: 
-      objectReference: {fileID: 798604541}
+      objectReference: {fileID: 0}
+    - target: {fileID: 3456019412605583167, guid: 03746f379d013db4299efabefc3c8872,
+        type: 3}
+      propertyPath: matchManager
+      value: 
+      objectReference: {fileID: 798604543}
     - target: {fileID: 5069126344617726433, guid: 03746f379d013db4299efabefc3c8872,
         type: 3}
       propertyPath: gameManager
       value: 
-      objectReference: {fileID: 798604541}
+      objectReference: {fileID: 0}
+    - target: {fileID: 5069126344617726433, guid: 03746f379d013db4299efabefc3c8872,
+        type: 3}
+      propertyPath: matchManager
+      value: 
+      objectReference: {fileID: 798604543}
     - target: {fileID: 8251775766812962982, guid: 03746f379d013db4299efabefc3c8872,
         type: 3}
       propertyPath: m_LocalPosition.x

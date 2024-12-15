@@ -5,7 +5,7 @@ namespace HyperStrike
     public class GoalZone : MonoBehaviour
     {
         [SerializeField] private bool isLocalGoal; // TRUE = Local ; FALSE = Visitor
-        [SerializeField] private GameManager gameManager;
+        [SerializeField] private Match matchManager;
 
         private void OnTriggerEnter(Collider other)
         {
@@ -14,11 +14,11 @@ namespace HyperStrike
             {
                 if (isLocalGoal)
                 {
-                    gameManager.IncrementLocalScore();
+                    matchManager.IncrementLocalScore();
                 }
                 else
                 {
-                    gameManager.IncrementVisitantScore();
+                    matchManager.IncrementVisitantScore();
                 }
             }
         }

@@ -1,11 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using UnityEngine;
-using static UnityEditorInternal.VersionControl.ListControl;
 
 namespace HyperStrike
 {
@@ -17,6 +11,7 @@ namespace HyperStrike
     {
         NONE,
         GAME_STATE,
+        MATCH,
         PLAYER_DATA,
         ABILITY,
         PROJECTILE,
@@ -32,6 +27,29 @@ namespace HyperStrike
         public abstract byte[] Serialize(ISerializable lastStatePacket);
         public abstract void Deserialize(byte[] data, ISerializable lastStatePacket);
 
+        protected void WriteDelta(BinaryWriter writer, int? lastValue, int currentValue)
+        {
+            if (lastValue != currentValue)
+            {
+                writer.Write(true);
+                writer.Write(currentValue);
+            }
+            else
+            {
+                writer.Write(false);
+            }
+        }
+
+        protected int ReadDelta(BinaryReader reader, int? lastValue)
+        {
+            if (reader.ReadBoolean())
+            {
+                int value = reader.ReadInt32();
+                return value;
+            }
+            return lastValue ?? 0;
+        }
+        
         protected void WriteDelta(BinaryWriter writer, float? lastValue, float currentValue)
         {
             if (lastValue != currentValue)
@@ -52,7 +70,7 @@ namespace HyperStrike
                 float value = reader.ReadSingle();
                 return value;
             }
-            return lastValue ?? new float();
+            return lastValue ?? 0.0f;
         }
         
         protected void WriteDelta(BinaryWriter writer, float[] lastValue, float[] currentValue)

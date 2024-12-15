@@ -13,6 +13,11 @@ public abstract class Projectile : MonoBehaviour
     public ProjectilePacket Packet;
     public bool updateGO;
 
+    private void Awake()
+    {
+        Packet = new ProjectilePacket();
+    }
+
     public abstract void Move();
     public abstract void ApplyDamage(GameObject collidedGO);
 

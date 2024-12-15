@@ -12,7 +12,7 @@ namespace HyperStrike
     public class Server : MonoBehaviour
     {
         User server_User;
-        Dictionary<EndPoint, User> server_ConnectedUsers;
+        Dictionary<EndPoint, User> server_ConnectedUsers = new Dictionary<EndPoint, User>();
 
         #region CONNECTION
         public void StartHost(string username)
@@ -28,11 +28,14 @@ namespace HyperStrike
             server_User.userId = 0; // Is the first user connected
             server_User.name = username;
             server_User.firstConnection = false;
+
             server_ConnectedUsers.Add(NetworkManager.Instance.nm_ServerEndPoint, server_User);
 
-            NetworkManager.Instance.SetNetPlayer(username);
+            NetworkManager.Instance.SetNetPlayer(username, true);
 
             NetworkManager.Instance.nm_StatusText += $"\nHost User created with name {username}";
+
+            NetworkManager.Instance.nm_Match = GameObject.Find("MatchManager").GetComponent<Match>();
 
             Thread mainThread = new Thread(ReceiveHost);
             mainThread.Start();
@@ -116,22 +119,23 @@ namespace HyperStrike
                 {
                     newUser = new User();
                     newUser.firstConnection = true;
-                    newUser.playerData = new PlayerDataPacket();
+                    //newUser.playerData = new PlayerDataPacket();
                 }
                 
                 // SET MAX 10 PLAYERS
                 if (newUser.firstConnection)
                 {
-                    JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
-                    newUser.name = newUser.playerData.PlayerName;
-                    newUser.userId = server_ConnectedUsers.Count;
-                    newUser.playerData.PlayerId = server_ConnectedUsers.Count;
+                    //JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
+                    //newUser.name = newUser.playerData.PlayerName;
+                    //newUser.userId = server_ConnectedUsers.Count;
+                    //newUser.playerData.PlayerId = server_ConnectedUsers.Count;
 
                     //PlayerDataPacket server_ReceivedPlayerData = newUser.playerData;
+                    PlayerDataPacket playerDataPacket = new PlayerDataPacket();
 
                     MainThreadInvoker.Invoke(() =>
                     {
-                        NetworkManager.Instance.InstatiateGO(newUser.playerData);
+                        NetworkManager.Instance.InstatiateGO(playerDataPacket);
                     });
 
                     NetworkManager.Instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
@@ -141,7 +145,7 @@ namespace HyperStrike
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
                     serverAnswer.Start();
 
-                    string packetPlayerData = JsonUtility.ToJson(newUser.playerData);
+                    string packetPlayerData = JsonUtility.ToJson(playerDataPacket);
 
                     // Send new User to other Clients
                     foreach (KeyValuePair<EndPoint, User> user in server_ConnectedUsers)
@@ -165,20 +169,20 @@ namespace HyperStrike
 
         void HandlePlayerData(User user, string jsonData, EndPoint Remote)
         {
-            JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
-            NetworkManager.Instance.nm_StatusText = $"\nReceived data from {user.name}_{user.userId} : {user.playerData.Position[0]}, {user.playerData.Position[1]}, {user.playerData.Position[2]}";
+            //JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
+            //NetworkManager.Instance.nm_StatusText = $"\nReceived data from {user.name}_{user.userId} : {user.playerData.Position[0]}, {user.playerData.Position[1]}, {user.playerData.Position[2]}";
 
-            MainThreadInvoker.Invoke(() =>
-            {
-                GameObject go = GameObject.Find(user.playerData.PlayerName);
+            //MainThreadInvoker.Invoke(() =>
+            //{
+            //    GameObject go = GameObject.Find(user.playerData.PlayerName);
 
-                if (go != null)
-                {
-                    Player p = go.GetComponent<Player>();
-                    p.updateGO = true;
-                    p.Packet = user.playerData;
-                }
-            });
+            //    if (go != null)
+            //    {
+            //        Player p = go.GetComponent<Player>();
+            //        p.updateGO = true;
+            //        p.Packet = user.playerData;
+            //    }
+            //});
 
             // Broadcast the updated player position to all clients
             foreach (KeyValuePair<EndPoint, User> u in server_ConnectedUsers)
