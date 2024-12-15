@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using HyperStrike;
 using UnityEngine;
 
 public class Rocket : Projectile
@@ -26,14 +25,34 @@ public class Rocket : Projectile
     // Update is called once per frame
     void Update()
     {
-        
+        if (updateGO)
+        {
+            UpdateGameObjectData();
+            updateGO = false;
+        }
+        UpdateRocketData();
+    }
+
+    void UpdateRocketData()
+    {
+        Packet.Position[0] = this.gameObject.transform.position.x;
+        Packet.Position[1] = this.gameObject.transform.position.y;
+        Packet.Position[2] = this.gameObject.transform.position.z;
+    }
+
+    void UpdateGameObjectData()
+    {
+        this.gameObject.transform.position = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
     }
 
     private void OnCollisionEnter(Collision other)
     {
+        if (!enabled) return;
+
         if (other != null) 
         {
             Explode();
+            Packet.IsExploding = true;
         }
     }
 
@@ -53,7 +72,7 @@ public class Rocket : Projectile
             Rigidbody rb = collider.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                Debug.Log("Body Found: " + rb.name);
+                //Debug.Log("Body Found: " + rb.name);
                 rb.AddExplosionForce(explosionForce, transform.position, radius);
             }
             ApplyDamage(collider.gameObject); // Put it inside Explode()
@@ -64,12 +83,12 @@ public class Rocket : Projectile
 
     public override void ApplyDamage(GameObject collidedGO)
     {
-        Player p = collidedGO.GetComponent<Player>();
-        if (p != null && p.playerData.playerId != playerShooterID) 
-        {
-            p.playerData.health -= damage;
-            Debug.Log(p.name + " Health: " + p.playerData.health);
-        }
+        //Player p = collidedGO.GetComponent<Player>();
+        //if (p != null && p.Packet.playerId != playerShooterID) 
+        //{
+        //    p.playerData.health -= damage;
+        //    Debug.Log(p.name + " Health: " + p.playerData.health);
+        //}
 
         // Add VFX
     }

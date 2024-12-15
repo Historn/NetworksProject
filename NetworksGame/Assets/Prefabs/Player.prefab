@@ -152,17 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 179ac9a0d17662145933f5b144607af7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  id: 0
   updateGO: 0
-  state: 0
-  playerData:
-    playerId: 0
-    playerName: Player
-    health: 100
-    position:
-    - 0
-    - 2
-    - 0
 --- !u!114 &1649925295855649758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -181,6 +171,7 @@ MonoBehaviour:
   jumpForce: 8
   jumpCooldown: 0.25
   airMultiplier: 0.3
+  mouseSensitivity: 400
   jumpKey: 32
   attackKey: 323
   ability1Key: 324
@@ -197,6 +188,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   wallrun: 0
+  cinemachineCamera: {fileID: 5825031632169213714}
   playerCam: {fileID: 2077707639130893356}
   rocketPrefab: {fileID: 2683894209613125051, guid: 35ac5d67c1bb8054eb56eb0247054f2d,
     type: 3}
@@ -212,8 +204,8 @@ GameObject:
   - component: {fileID: 4968218689879097944}
   - component: {fileID: 5825031632169213714}
   - component: {fileID: 7618857647942443079}
-  - component: {fileID: 8505264193777459684}
   - component: {fileID: 1986074647631470064}
+  - component: {fileID: 14281932585499190}
   m_Layer: 0
   m_Name: FPS Camera
   m_TagString: Untagged
@@ -292,40 +284,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Damping: 0
---- !u!114 &8505264193777459684
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2077707639130893356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62d54399b04b4fa48a73e121d4937dd4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ReferenceFrame: 2
-  RecenterTarget: 0
-  PanAxis:
-    Value: 0
-    Center: 0
-    Range: {x: -180, y: 180}
-    Wrap: 1
-    Recentering:
-      Enabled: 0
-      Wait: 1
-      Time: 2
-    Restrictions: 0
-  TiltAxis:
-    Value: 0
-    Center: 0
-    Range: {x: -70, y: 70}
-    Wrap: 0
-    Recentering:
-      Enabled: 0
-      Wait: 1
-      Time: 2
-    Restrictions: 0
 --- !u!114 &1986074647631470064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -342,29 +300,20 @@ MonoBehaviour:
   SuppressInputWhileBlending: 1
   IgnoreTimeScale: 0
   m_ControllerManager:
-    Controllers:
-    - Name: Look X (Pan)
-      Owner: {fileID: 8505264193777459684}
-      Enabled: 1
-      Input:
-        LegacyInput: Mouse X
-        LegacyGain: 400
-        CancelDeltaTime: 0
-      InputValue: 0
-      Driver:
-        AccelTime: 0
-        DecelTime: 0
-    - Name: Look Y (Tilt)
-      Owner: {fileID: 8505264193777459684}
-      Enabled: 1
-      Input:
-        LegacyInput: Mouse Y
-        LegacyGain: -400
-        CancelDeltaTime: 0
-      InputValue: -0
-      Driver:
-        AccelTime: 0
-        DecelTime: 0
+    Controllers: []
+--- !u!114 &14281932585499190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2077707639130893356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4afa82ae3200b82408d605c3dbdd1e38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Damping: 0
 --- !u!1 &2134616308637938868
 GameObject:
   m_ObjectHideFlags: 0

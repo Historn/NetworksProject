@@ -1,6 +1,7 @@
 using HyperStrike;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -17,6 +18,11 @@ public class PlayerMovement : MonoBehaviour
     public float jumpCooldown;
     public float airMultiplier;
     bool readyToJump;
+
+    [Header("Mouse Settings")]
+    public float mouseSensitivity = 400f; // Sensitivity of the mouse movement
+
+    private float xRotation = 0f; // Current x-axis rotation
 
     [Header("KeyBinds")]
     public KeyCode jumpKey = KeyCode.Space;
@@ -39,6 +45,10 @@ public class PlayerMovement : MonoBehaviour
     float horizontalInput;
     float verticalInput;
 
+    [Header("Cinemachine Settings")]
+    public CinemachineCamera cinemachineCamera; // Reference to the Cinemachine virtual camera
+    private Transform cameraTransform; // The transform of the Cinemachine camera's LookAt target
+
     public GameObject playerCam;
     Vector3 moveDirection;
 
@@ -55,6 +65,12 @@ public class PlayerMovement : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // Ensure the Cinemachine camera is set up properly
+        if (cinemachineCamera != null)
+        {
+            cameraTransform = cinemachineCamera.LookAt; // Use the LookAt target for rotation
+        }
 
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
@@ -84,6 +100,11 @@ public class PlayerMovement : MonoBehaviour
 
     void MovementInput()
     {
+        if (cameraTransform != null)
+        {
+            RotatePlayerWithCamera();
+        }
+
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
 
@@ -118,6 +139,23 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(moveDirection.normalized * movementSpeed * 10f, ForceMode.Force);
     }
 
+    private void RotatePlayerWithCamera()
+    {
+        // Get mouse input
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+
+        // Adjust xRotation for vertical rotation and clamp it
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+
+        // Update the Cinemachine camera's rotation
+        cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+
+        // Apply horizontal rotation to the player
+        transform.Rotate(Vector3.up * mouseX);
+    }
+
     void LimitSpeed()
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
@@ -148,7 +186,7 @@ public class PlayerMovement : MonoBehaviour
         Projectile rocket = rocketGO.GetComponent<Projectile>();
         if (rocket != null) 
         {
-            rocket.playerShooterID = gameObject.GetComponent<Player>().playerData.playerId;
+            rocket.playerShooterID = gameObject.GetComponent<Player>().Packet.PlayerId;
         }
     }
 

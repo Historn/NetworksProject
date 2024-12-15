@@ -1,44 +1,21 @@
 using HyperStrike;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
 {
-    public enum PlayerState
-    {
-        IDLE = 0,
-        RUNNING,
-        JUMPING,
-        SHOOTING,
-        DEAD
-    }
-
-    public int id;
     public bool updateGO = false;
 
-    float ultimateCharge = 0f;
-
     // DATA TO SERIALIZE FROM PLAYER
-    public PlayerState state;
-    public PlayerData playerData;
+    public PlayerDataPacket Packet;
 
-
-    void Start()
+    private void Awake()
     {
-
+        Packet = new PlayerDataPacket();
     }
 
     void Update()
     {
-        if(playerData.health <= 0.0f)
-        {
-            state = PlayerState.DEAD;
-            gameObject.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.None; // When Respawning, freeze rotation again.
-            //StartCoroutine("PlayerDead");
-        }
-
         if (updateGO)
         {
             UpdateGameObjectData();
@@ -49,14 +26,20 @@ public class Player : MonoBehaviour
 
     void UpdatePlayerData()
     {
-        playerData.position[0] = this.gameObject.transform.position.x;
-        playerData.position[1] = this.gameObject.transform.position.y;
-        playerData.position[2] = this.gameObject.transform.position.z;
+        Packet.Position[0] = this.gameObject.transform.position.x;
+        Packet.Position[1] = this.gameObject.transform.position.y;
+        Packet.Position[2] = this.gameObject.transform.position.z;
+        
+        Packet.Rotation[0] = this.gameObject.transform.rotation.x;
+        Packet.Rotation[1] = this.gameObject.transform.rotation.y;
+        Packet.Rotation[2] = this.gameObject.transform.rotation.z;
+        Packet.Rotation[3] = this.gameObject.transform.rotation.w;
     }
     
     void UpdateGameObjectData()
     {
-        this.gameObject.transform.position = new Vector3(playerData.position[0], playerData.position[1], playerData.position[2]);
+        this.gameObject.transform.position = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
+        this.gameObject.transform.rotation = new Quaternion(Packet.Rotation[0], Packet.Rotation[1], Packet.Rotation[2], Packet.Rotation[3]);
     }
 
     IEnumerator PlayerDead()

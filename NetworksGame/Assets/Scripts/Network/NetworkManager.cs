@@ -14,9 +14,10 @@ namespace HyperStrike
 {
     public class NetworkManager : MonoBehaviour
     {
-        public static NetworkManager instance { get; private set; }
-        void Awake() { if (instance == null) instance = this; }
+        public static NetworkManager Instance { get; private set; }
+        void Awake() { if (Instance == null) Instance = this; }
 
+        [HideInInspector]public Socket nm_Socket;
         [HideInInspector]public IPEndPoint nm_ServerEndPoint;
 
         public GameObject nm_UItextObj;
@@ -26,13 +27,24 @@ namespace HyperStrike
 
         [SerializeField]GameObject clientInstancePrefab;
 
-        public PlayerData nm_PlayerData;
+        [HideInInspector] public GameObject nm_Player;
+        public PlayerDataPacket nm_PlayerData;
+
+
+        // VARIABLES FOR REPLICATION MANAGEMENT
+        [HideInInspector]
+        public Dictionary<int, Player> nm_ActivePlayers = new Dictionary<int, Player>();
+        public Dictionary<int, Projectile> nm_ActiveProjectiles = new Dictionary<int, Projectile>();
+
+        [HideInInspector]
+        public Dictionary<int, PlayerDataPacket> nm_LastPlayerStates = new Dictionary<int, PlayerDataPacket>();
+        public Dictionary<int, ProjectilePacket> nm_LastProjectileStates = new Dictionary<int, ProjectilePacket>();
 
         // Start is called before the first frame update
         void Start()
         {
             nm_UItext = nm_UItextObj.GetComponent<TextMeshProUGUI>();
-            nm_PlayerData = new PlayerData();
+            nm_PlayerData = new PlayerDataPacket();
             nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
@@ -41,15 +53,8 @@ namespace HyperStrike
             nm_UItext.text = nm_StatusText;
         }
 
-        public void InstatiateGO(PlayerData data)
-        {
-            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
-            goInstance.name = data.playerName;
-            goInstance.GetComponent<Player>().playerData = data;
-            Debug.Log("GO CREATED: " + data.playerName);
-        }
-
-        public void SetNetPlayer(string username)
+        #region CONNECTION
+        public void SetNetPlayer(string username, bool isHost = false)
         {
             // Set Up Player before starting server
             GameObject go = GameObject.Find("Player");
@@ -57,10 +62,40 @@ namespace HyperStrike
             {
                 go.name = username;
                 Player player = go.GetComponent<Player>();
-                player.playerData.playerName = username;
-                player.playerData.playerId = 0;
-                nm_PlayerData = player.playerData;
+                player.Packet.PlayerName = username;
+
+                if (isHost)
+                    player.Packet.PlayerId = 0;
+                else
+                    player.Packet.PlayerId = -1;
+
+                nm_PlayerData = player.Packet;
+                nm_Player = go;
+                nm_ActivePlayers.Add(player.Packet.PlayerId, player);
             }
         }
+        #endregion
+
+        #region REPLICATION
+
+        public void InstatiateGO(PlayerDataPacket data)
+        {
+            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
+            goInstance.name = data.PlayerName;
+            goInstance.GetComponent<Player>().Packet = data;
+            Debug.Log("GO CREATED: " + data.PlayerName);
+        }
+
+        public Player GetPlayerById(int id)
+        {
+            return nm_ActivePlayers.ContainsKey(id) ? nm_ActivePlayers[id] : null;
+        }
+        
+        public Projectile GetProjectileById(int id)
+        {
+            return nm_ActiveProjectiles.ContainsKey(id) ? nm_ActiveProjectiles[id] : null;
+        }
+
+        #endregion
     }
 }

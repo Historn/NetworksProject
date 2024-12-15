@@ -4,53 +4,87 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using System.IO;
+using System;
 
 namespace HyperStrike
 {
     public class Server : MonoBehaviour
     {
-        Socket server_Socket;
-
         User server_User;
-        List<User> server_ConnectedUsers = new List<User>(); // Change to a Dictionary based on the Endpoint, User
-        //Dictionary<EndPoint, User> server_ConnectedUsers;
+        Dictionary<EndPoint, User> server_ConnectedUsers;
 
-        PlayerData server_ReceivedPlayerData;
-
+        #region CONNECTION
         public void StartHost(string username)
         {
-            NetworkManager.instance.nm_StatusText += "Creating Host Server...";
+            NetworkManager.Instance.nm_StatusText += "Creating Host Server...";
 
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
-            server_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            server_Socket.Bind(ipep);
+            NetworkManager.Instance.nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            NetworkManager.Instance.nm_Socket.Bind(ipep);
 
             // Create Host User as first user connected
             server_User = new User();
             server_User.userId = 0; // Is the first user connected
             server_User.name = username;
-            server_User.endPoint = NetworkManager.instance.nm_ServerEndPoint;
             server_User.firstConnection = false;
-            server_ConnectedUsers.Add(server_User);
+            server_ConnectedUsers.Add(NetworkManager.Instance.nm_ServerEndPoint, server_User);
 
-            NetworkManager.instance.SetNetPlayer(username);
+            NetworkManager.Instance.SetNetPlayer(username);
 
-            NetworkManager.instance.nm_PlayerData.playerId = 0;
-            NetworkManager.instance.nm_PlayerData.playerName = username;
-
-            NetworkManager.instance.nm_StatusText += $"\nHost User created with name {username}";
+            NetworkManager.Instance.nm_StatusText += $"\nHost User created with name {username}";
 
             Thread mainThread = new Thread(ReceiveHost);
             mainThread.Start();
         }
+        #endregion
+
+        #region REPLICATION
+        // HOST HAS TO SEND
+        // GAME STATE + CLIENTS STATE + GENERAL NET OBJECTS WITH ITS ¿ACTIONS?
 
         void SendHost(EndPoint Remote, string message)
         {
-            byte[] data = Encoding.ASCII.GetBytes(message);
+            byte[] hostPacket = new byte[1024];
+
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                // First we want to send the Game State
+                // Call Game State Serialize()
+                //byte[] gameStateData = GameState.Serialize();
+                //memoryStream.Write(gameStateData, 0, gameStateData.Length);
+
+                // Serialize Host and Clients Player Data
+                foreach (KeyValuePair<int, Player> p in NetworkManager.Instance.nm_ActivePlayers)
+                {
+                    var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(p.Value.Packet.PlayerId) ? NetworkManager.Instance.nm_LastPlayerStates[p.Value.Packet.PlayerId] : null;
+                    byte[] playersPacket = p.Value.Packet.Serialize(lastState);
+
+                    if (memoryStream.Length + playersPacket.Length <= 1024)
+                    {
+                        memoryStream.Write(playersPacket, 0, playersPacket.Length);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Client {p.Key} data exceeds packet size limit.");
+                        break;
+                    }
+                }
+
+                // Serialize Pool of Projectiles
+                //foreach (KeyValuePair<int, Player> p in NetworkManager.instance.nm_ActivePlayers)
+                //{
+                //    var lastState = lastProjectileStates.ContainsKey(currentProjectState.ProjectileId) ? lastProjectileStates[currentState.ProjectileId] : null;
+                //    hostPacket += p.Value.Packet.Serialize(lastState);
+                //}
+
+                // Finalize the packet
+                hostPacket = memoryStream.ToArray();
+            }
 
             try
             {
-                server_Socket.SendTo(data, Remote);
+                NetworkManager.Instance.nm_Socket.SendTo(hostPacket, Remote);
             }
             catch (SocketException ex)
             {
@@ -63,66 +97,66 @@ namespace HyperStrike
             byte[] data = new byte[1024];
             int recv = 0;
 
-            NetworkManager.instance.nm_StatusText += "\nWaiting for new Client...";
-            Debug.Log(NetworkManager.instance.nm_StatusText);
+            NetworkManager.Instance.nm_StatusText += "\nWaiting for new players...";
+            Debug.Log(NetworkManager.Instance.nm_StatusText);
 
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint Remote = (EndPoint)(sender);
 
             while (true)
             {
-                User newUser = new User();
-                newUser.firstConnection = true;
-                newUser.playerData = new PlayerData();
-
                 data = new byte[1024];
-                recv = server_Socket.ReceiveFrom(data, ref Remote);
+                recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
                 string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
                 //Debug.Log("Received: " + receivedJson);
 
-                foreach (User user in server_ConnectedUsers)
-                {
-                    if (user.endPoint.ToString() == Remote.ToString())
-                    {
-                        newUser = user;
-                        newUser.firstConnection = false;
-                        break;
-                    }
-                }
+                User newUser = GetUserByEndPoint(Remote);
 
+                if (newUser == null) 
+                {
+                    newUser = new User();
+                    newUser.firstConnection = true;
+                    newUser.playerData = new PlayerDataPacket();
+                }
+                
+                // SET MAX 10 PLAYERS
                 if (newUser.firstConnection)
                 {
                     JsonUtility.FromJsonOverwrite(receivedJson, newUser.playerData);
-                    newUser.name = newUser.playerData.playerName;
+                    newUser.name = newUser.playerData.PlayerName;
                     newUser.userId = server_ConnectedUsers.Count;
-                    newUser.endPoint = Remote;
-                    newUser.playerData.playerId = server_ConnectedUsers.Count;
+                    newUser.playerData.PlayerId = server_ConnectedUsers.Count;
 
-                    server_ReceivedPlayerData = newUser.playerData;
+                    //PlayerDataPacket server_ReceivedPlayerData = newUser.playerData;
 
                     MainThreadInvoker.Invoke(() =>
                     {
-                        NetworkManager.instance.InstatiateGO(newUser.playerData);
+                        NetworkManager.Instance.InstatiateGO(newUser.playerData);
                     });
 
-                    NetworkManager.instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
+                    NetworkManager.Instance.nm_StatusText += $"\n{newUser.name} joined the server called UDP Server";
 
                     // CHANGE TO SEND THE HOST USER INFO FIRST + INSTANCE GENERATED
-                    string packet = JsonUtility.ToJson(NetworkManager.instance.nm_PlayerData); // I need to set playerData before send it
+                    string packet = JsonUtility.ToJson(NetworkManager.Instance.nm_PlayerData); // I need to set playerData before send it
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packet));
                     serverAnswer.Start();
 
                     string packetPlayerData = JsonUtility.ToJson(newUser.playerData);
 
-                    foreach (User user in server_ConnectedUsers)
+                    // Send new User to other Clients
+                    foreach (KeyValuePair<EndPoint, User> user in server_ConnectedUsers)
                     {
-                        Thread answer = new Thread(() => SendHost(user.endPoint, packetPlayerData));
+                        if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString())
+                            continue;
+
+                        Thread answer = new Thread(() => SendHost(user.Key, packetPlayerData));
                         answer.Start();
                     }
+
                     newUser.firstConnection = false;
-                    server_ConnectedUsers.Add(newUser);
+                    server_ConnectedUsers.Add(Remote, newUser);
                 }
-                else if (newUser.endPoint.ToString() != server_User.endPoint.ToString())
+                else
                 {
                     HandlePlayerData(newUser, receivedJson, Remote);
                 }
@@ -132,40 +166,40 @@ namespace HyperStrike
         void HandlePlayerData(User user, string jsonData, EndPoint Remote)
         {
             JsonUtility.FromJsonOverwrite(jsonData, user.playerData);
-            NetworkManager.instance.nm_StatusText = $"\nReceived data from {user.name}_{user.userId} : {user.playerData.position[0]}, {user.playerData.position[1]}, {user.playerData.position[2]}";
+            NetworkManager.Instance.nm_StatusText = $"\nReceived data from {user.name}_{user.userId} : {user.playerData.Position[0]}, {user.playerData.Position[1]}, {user.playerData.Position[2]}";
 
             MainThreadInvoker.Invoke(() =>
             {
-                GameObject go = GameObject.Find(user.playerData.playerName);
+                GameObject go = GameObject.Find(user.playerData.PlayerName);
 
                 if (go != null)
                 {
                     Player p = go.GetComponent<Player>();
                     p.updateGO = true;
-                    p.playerData = user.playerData;
-                    //Debug.Log("GO FOUND: " + p.playerData.position[0] + " " + p.playerData.position[1] + " " + p.playerData.position[2]);
+                    p.Packet = user.playerData;
                 }
             });
 
             // Broadcast the updated player position to all clients
-            foreach (User u in server_ConnectedUsers)
+            foreach (KeyValuePair<EndPoint, User> u in server_ConnectedUsers)
             {
-                if (u.endPoint.ToString() != server_User.endPoint.ToString())
-                {
-                    string playerJson = JsonUtility.ToJson(NetworkManager.instance.nm_PlayerData);
-                    Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
-                    sendThread.Start();
-                }
+                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == u.Key.ToString())
+                    continue;
 
-                // Esto hace lo mismo que el de arriba?
-                if (u.endPoint.ToString() != Remote.ToString())
-                {
-                    string playerJson = JsonUtility.ToJson(user.playerData);
-                    Thread sendThread = new Thread(() => SendHost(u.endPoint, playerJson));
-                    sendThread.Start();
-                }
+                // SEND PACKETS
+
+                string playerJson = JsonUtility.ToJson(NetworkManager.Instance.nm_PlayerData);
+                Thread answer = new Thread(() => SendHost(u.Key, playerJson));
+                answer.Start();
             }
+
         }
+        public User GetUserByEndPoint(EndPoint endPoint)
+        {
+            return server_ConnectedUsers.ContainsKey(endPoint) ? server_ConnectedUsers[endPoint] : null;
+        }
+        
+        #endregion
     }
 }
 

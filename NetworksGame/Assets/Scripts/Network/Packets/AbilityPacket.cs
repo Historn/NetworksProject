@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace HyperStrike
@@ -16,34 +17,44 @@ namespace HyperStrike
             Type = PacketType.ABILITY; // Unique packet type for abilities
         }
 
-        public override byte[] Serialize()
+        public override byte[] Serialize(ISerializable lastState)
         {
+            if (lastState is not AbilityPacket lastAbilityState)
+            {
+                throw new ArgumentException("Invalid packet type for delta serialization not AbilityState");
+            }
+
             using (MemoryStream ms = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(ms))
             {
-                writer.Write((byte)Type);
-                writer.Write(PlayerId);
-                writer.Write(AbilityId);
-                foreach (var value in TargetPosition) writer.Write(value);
-                writer.Write(IsAbilityStart);
-                writer.Write(CurrentCooldown);
-                writer.Write(UltimateCharge);
+                //writer.Write((byte)Type);
+                //writer.Write(PlayerId);
+                //writer.Write(AbilityId);
+                //foreach (var value in TargetPosition) writer.Write(value);
+                //writer.Write(IsAbilityStart);
+                //writer.Write(CurrentCooldown);
+                //writer.Write(UltimateCharge);
                 return ms.ToArray();
             }
         }
 
-        public override void Deserialize(byte[] data)
+        public override void Deserialize(byte[] data, ISerializable lastState)
         {
+            if (lastState is not AbilityPacket lastAbilityState)
+            {
+                throw new ArgumentException("Invalid packet type for delta serialization not AbilityState");
+            }
+
             using (MemoryStream ms = new MemoryStream(data))
             using (BinaryReader reader = new BinaryReader(ms))
             {
-                Type = (PacketType)reader.ReadInt32();
-                PlayerId = reader.ReadInt32();
-                AbilityId = reader.ReadInt32();
-                for (int i = 0; i < 3; i++) TargetPosition[i] = reader.ReadSingle();
-                IsAbilityStart = reader.ReadBoolean();
-                CurrentCooldown = reader.ReadSingle();
-                UltimateCharge = reader.ReadSingle();
+                //Type = (PacketType)reader.ReadInt32();
+                //PlayerId = reader.ReadInt32();
+                //AbilityId = reader.ReadInt32();
+                //for (int i = 0; i < 3; i++) TargetPosition[i] = reader.ReadSingle();
+                //IsAbilityStart = reader.ReadBoolean();
+                //CurrentCooldown = reader.ReadSingle();
+                //UltimateCharge = reader.ReadSingle();
             }
         }
     }
