@@ -227,8 +227,8 @@ namespace HyperStrike
             if (player != null)
             {
                 player.Packet = playerPacket;
-                //NetworkManager.Instance.nm_LastPlayerStates[user] = playerPacket;
                 player.updateGO = true;
+                lastState = playerPacket;
             }   
             else
             {

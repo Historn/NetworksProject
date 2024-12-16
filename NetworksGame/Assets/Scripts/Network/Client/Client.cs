@@ -11,7 +11,7 @@ namespace HyperStrike
 {
     public class Client : MonoBehaviour
     {
-        float sendInterval = 0.05f;
+        float sendInterval = 0.01f;
         private bool isSendingPackets = false; // Track if the coroutine is running
         Thread receive;
 
@@ -202,7 +202,7 @@ namespace HyperStrike
                     {
                         existingPlayer.Packet = player;
                         existingPlayer.updateGO = true;
-                        NetworkManager.Instance.nm_LastPlayerStates[playerId] = player;
+                        lastState = player;
                     }
                     else
                     {
