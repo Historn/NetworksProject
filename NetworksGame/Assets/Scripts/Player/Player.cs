@@ -30,16 +30,15 @@ public class Player : MonoBehaviour
         Packet.Position[1] = this.gameObject.transform.position.y;
         Packet.Position[2] = this.gameObject.transform.position.z;
         
-        Packet.Rotation[0] = this.gameObject.transform.rotation.x;
-        Packet.Rotation[1] = this.gameObject.transform.rotation.y;
-        Packet.Rotation[2] = this.gameObject.transform.rotation.z;
-        Packet.Rotation[3] = this.gameObject.transform.rotation.w;
+        Packet.Rotation[0] = this.gameObject.transform.eulerAngles.x;
+        Packet.Rotation[1] = this.gameObject.transform.eulerAngles.y;
+        Packet.Rotation[2] = this.gameObject.transform.eulerAngles.z;
     }
     
     void UpdateGameObjectData()
     {
         this.gameObject.transform.position = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
-        this.gameObject.transform.rotation = new Quaternion(Packet.Rotation[0], Packet.Rotation[1], Packet.Rotation[2], Packet.Rotation[3]);
+        this.gameObject.transform.eulerAngles = new Vector3(Packet.Rotation[0], Packet.Rotation[1], Packet.Rotation[2]);
     }
 
     IEnumerator PlayerDead()

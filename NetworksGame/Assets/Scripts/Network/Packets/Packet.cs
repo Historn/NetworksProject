@@ -23,7 +23,6 @@ namespace HyperStrike
 
         public PacketType Type { get; protected set; }
 
-        //public abstract byte[] Serialize();
         public abstract byte[] Serialize(ISerializable lastStatePacket);
         public abstract void Deserialize(byte[] data, ISerializable lastStatePacket);
 

@@ -7,10 +7,10 @@ namespace HyperStrike
     // BY NOW 22 BYTES?
     public class ProjectilePacket : Packet
     {
-        public bool IsActive;
-        public bool IsExploding;
-        public int ProjectileId;
-        public int ShooterId;
+        public bool IsActive = true;
+        public bool IsExploding = false;
+        public int ProjectileId = -1;
+        public int ShooterId = -1;
         public float[] Position = new float[3];
 
         public ProjectilePacket()

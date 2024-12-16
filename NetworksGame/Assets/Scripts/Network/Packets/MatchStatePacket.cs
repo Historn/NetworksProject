@@ -5,9 +5,9 @@ namespace HyperStrike
 {
     public class MatchStatePacket : Packet
     {
-        public int LocalGoals;
-        public int VisitantGoals;
-        public float CurrentTime;
+        public int LocalGoals = -1;
+        public int VisitantGoals = -1;
+        public float CurrentTime = 0.0f;
         public float[] BallPosition = new float[3];
 
         public MatchStatePacket()

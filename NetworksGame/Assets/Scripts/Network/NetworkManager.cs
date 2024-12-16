@@ -28,11 +28,12 @@ namespace HyperStrike
         [SerializeField]GameObject clientInstancePrefab;
 
         [HideInInspector] public GameObject nm_Player;
-        public PlayerDataPacket nm_PlayerData;
+        public PlayerDataPacket nm_PlayerData = new PlayerDataPacket();
 
 
         // VARIABLES FOR REPLICATION MANAGEMENT
         public Match nm_Match;
+        public MatchStatePacket nm_LastMatchState = new MatchStatePacket();
 
         [HideInInspector]
         public Dictionary<int, Player> nm_ActivePlayers = new Dictionary<int, Player>();
@@ -46,7 +47,6 @@ namespace HyperStrike
         void Start()
         {
             nm_UItext = nm_UItextObj.GetComponent<TextMeshProUGUI>();
-            nm_PlayerData = new PlayerDataPacket();
             nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
@@ -56,7 +56,7 @@ namespace HyperStrike
         }
 
         #region CONNECTION
-        public void SetNetPlayer(string username, bool isHost = false)
+        public void SetNetPlayer(string username, int id)
         {
             // Set Up Player before starting server
             GameObject go = GameObject.Find("Player");
@@ -66,10 +66,7 @@ namespace HyperStrike
                 Player player = go.GetComponent<Player>();
                 player.Packet.PlayerName = username;
 
-                if (isHost)
-                    player.Packet.PlayerId = 0;
-                else
-                    player.Packet.PlayerId = -1;
+                player.Packet.PlayerId = id;
 
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
@@ -85,8 +82,10 @@ namespace HyperStrike
         {
             GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
             goInstance.name = data.PlayerName;
-            goInstance.GetComponent<Player>().Packet = data;
-            Debug.Log("GO CREATED: " + data.PlayerName);
+            Player player = goInstance.GetComponent<Player>();
+            player.Packet = data;
+            nm_ActivePlayers.Add(data.PlayerId, player);
+            Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
         }
 
         public Player GetPlayerById(int id)

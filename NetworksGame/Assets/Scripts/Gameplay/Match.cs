@@ -6,7 +6,9 @@ using UnityEngine;
 
 public class Match : MonoBehaviour
 {
-    private float currentMatchTime;
+    public bool updateGO = false;
+
+    private float currentMatchTime = 300f;
     private Coroutine matchTimerCoroutine;
 
     [Header("Match Settings")]
@@ -42,6 +44,11 @@ public class Match : MonoBehaviour
 
     private void Update()
     {
+        if (updateGO)
+        {
+            UpdateGameObjectData();
+            updateGO = false;
+        }
         UpdateMatchPacket();
     }
 
@@ -174,6 +181,12 @@ public class Match : MonoBehaviour
             ballRigidbody.velocity = Vector3.zero;
             ballRigidbody.angularVelocity = Vector3.zero;
         }
+    }
+
+    void UpdateGameObjectData()
+    {
+        currentMatchTime = Packet.CurrentTime;
+        ball.transform.position = new Vector3(Packet.BallPosition[0], Packet.BallPosition[1], Packet.BallPosition[2]);
     }
 
     void UpdateMatchPacket()

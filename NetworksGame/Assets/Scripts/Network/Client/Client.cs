@@ -1,37 +1,31 @@
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
-using System.Text;
 using System.Threading;
+using System.Collections;
 using UnityEngine;
 using System.IO;
 using System;
 using System.Linq;
-using Unity.VisualScripting;
 
 namespace HyperStrike
 {
     public class Client : MonoBehaviour
     {
+        private bool isSendingPackets = false; // Track if the coroutine is running
+        Thread receive;
+
         void Update()
         {
-            // CHANGE FIRST CONDITIONAL?
             if (NetworkManager.Instance.nm_PlayerData != null && NetworkManager.Instance.nm_Connected)
             {
-                Thread sendThread = new Thread(() => SendClient());
-                sendThread.Start();
+                if (!isSendingPackets)
+                {
+                    StartCoroutine(SendPacketsWithDelay());
+                }
             }
         }
 
         public void StartClient(string username)
-        {
-            NetworkManager.Instance.SetNetPlayer(username);
-
-            Thread mainThread = new Thread(SendClient);
-            mainThread.Start();
-        }
-
-        void SendClient()
         {
             try
             {
@@ -45,78 +39,78 @@ namespace HyperStrike
                     NetworkManager.Instance.nm_Socket.Connect(ipep);
                     NetworkManager.Instance.nm_StatusText += "\nConnected to the host";
 
-                    ClientPacket(); // MAYBE CHANGE FOR FIRST CONNECTION?
-
                     NetworkManager.Instance.nm_Connected = true;
-
-                    //We'll wait for a server response,
-                    //Maybe first receive Users List then start the receive loop
-                    Thread receive = new Thread(ReceiveClient);
-                    receive.Start();
-                }
-                else
-                {
-                    Debug.Log("Sending Player Updated Data");
-                    
-                    ClientPacket();
                 }
             }
             catch (SocketException ex)
             {
-                NetworkManager.Instance.nm_StatusText += $"\nError sending message to the server: {ex.Message}";
+                NetworkManager.Instance.nm_StatusText += $"\nError connecting to the server: {ex.Message}";
             }
+
+            int userID = PlayerIDGenerator.GeneratePlayerID();
+
+            NetworkManager.Instance.SetNetPlayer(username, userID);
+
+            NetworkManager.Instance.nm_StatusText += $"\nPlayer {username} with ID {userID} created";
+
+            NetworkManager.Instance.nm_Match = GameObject.Find("MatchManager").GetComponent<Match>();
+
+            StartCoroutine(SendPacketsWithDelay(2f));
+
+            //We'll wait for a server response,
+            receive = new Thread(ReceiveClient);
+            receive.Start();
         }
 
-        private void ClientPacket()
+        private void SendClientPacket()
         {
+            Debug.Log("Client Creating Packet to Send");
+
             byte[] clientPacket = new byte[1024];
 
             // WE WANT TO SEND THIS CLIENT
             using (MemoryStream memoryStream = new MemoryStream())
             {
+                int id = NetworkManager.Instance.nm_PlayerData.PlayerId;
+                var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(id) ? NetworkManager.Instance.nm_LastPlayerStates[id] : new PlayerDataPacket();
+                byte[] playerData = NetworkManager.Instance.nm_ActivePlayers[id].Packet.Serialize(lastState);
 
+                memoryStream.Write(playerData, 0, playerData.Length);
 
                 clientPacket = memoryStream.ToArray();
             }
 
             NetworkManager.Instance.nm_Socket.SendTo(clientPacket, NetworkManager.Instance.nm_ServerEndPoint);
+            Debug.Log("PACKET SENT");
+        }
+
+        private IEnumerator SendPacketsWithDelay(float interval = 0.1f)
+        {
+            isSendingPackets = true;
+
+            while (NetworkManager.Instance.nm_Connected)
+            {
+                SendClientPacket();
+                yield return new WaitForSeconds(interval); // Wait before sending the next packet
+            }
+
+            isSendingPackets = false; // Stop sending when disconnected
         }
 
         void ReceiveClient()
         {
             Debug.Log("Client receiving");
-            byte[] data = new byte[1024];
             while (true)
             {
+                byte[] data = new byte[1024];
                 IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
                 EndPoint Remote = (EndPoint)(sender);
                 int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
-                string receivedJson = Encoding.ASCII.GetString(data, 0, recv);
 
-                Debug.Log("Packet received " + receivedJson);
+                Debug.Log("Packet received" );
 
-                PlayerDataPacket pData = new PlayerDataPacket();
-                JsonUtility.FromJsonOverwrite(receivedJson, pData);
-                NetworkManager.Instance.nm_StatusText = $"\nReceived data from {pData.PlayerName}: {pData.Position[0]}, {pData.Position[1]}, {pData.Position[2]}";
-
-                // CHANGE TO HANDLE PACKET RECEIVED
-                MainThreadInvoker.Invoke(() =>
-                {
-                    GameObject go = GameObject.Find(pData.PlayerName);
-                    Debug.Log("GO FOUND: " + pData.PlayerName);
-
-                    if (go != null)
-                    {
-                        Player p = go.GetComponent<Player>();
-                        p.updateGO = true;
-                        p.Packet = pData;
-                        Debug.Log("GO FOUND: " + p.Packet.PlayerName);
-                    }
-                    else
-                    {
-                        NetworkManager.Instance.InstatiateGO(pData);
-                    }
-                });
+                HandlePacket(data);
+                NetworkManager.Instance.nm_StatusText += $"\nReceived data from Host {NetworkManager.Instance.nm_LastMatchState.CurrentTime}";
             }
         }
 
@@ -130,10 +124,10 @@ namespace HyperStrike
             }
 
             // Separate the data into sections
-            (byte[] gameStateData, byte[] playerData, byte[] projectileData) = SeparateDataSections(receivedData);
+            (byte[] matchStateData, byte[] playerData, byte[] projectileData) = SeparateDataSections(receivedData);
 
             // Handle game state data
-            HandleGameStateData(gameStateData);
+            HandleMatchStateData(matchStateData);
 
             // Handle player data
             HandlePlayerData(playerData);
@@ -145,96 +139,106 @@ namespace HyperStrike
         private (byte[], byte[], byte[]) SeparateDataSections(byte[] data)
         {
             // Assuming the data format has a predefined structure
-            int gameStateSectionStart = 0; // Starting index for game state data
-            int gameStateSectionLength = BitConverter.ToInt32(data, gameStateSectionStart); // First 4 bytes define the length
-            int playerSectionStart = gameStateSectionStart + 4 + gameStateSectionLength;
+            int matchStateSectionStart = 0; // Starting index for game state data
+            int matchStateSectionLength = BitConverter.ToInt32(data, matchStateSectionStart); // First 4 bytes define the length
+            int playerSectionStart = matchStateSectionStart + 4 + matchStateSectionLength;
             int playerSectionLength = BitConverter.ToInt32(data, playerSectionStart); // Next 4 bytes define the player data length
             int projectileSectionStart = playerSectionStart + 4 + playerSectionLength;
 
-            if (data.Length < projectileSectionStart)
-            {
-                throw new InvalidOperationException("Invalid data structure.");
-            }
+            //if (data.Length < projectileSectionStart)
+            //{
+            //    throw new InvalidOperationException("Invalid data structure.");
+            //}
 
-            byte[] gameStateData = data.Skip(4).Take(gameStateSectionLength).ToArray();
+            byte[] matchStateData = data.Skip(4).Take(matchStateSectionLength).ToArray();
             byte[] playerData = data.Skip(playerSectionStart + 4).Take(playerSectionLength).ToArray();
             byte[] projectileData = data.Skip(projectileSectionStart).ToArray();
 
-            return (gameStateData, playerData, projectileData);
+            return (matchStateData, playerData, projectileData);
         }
 
-        private void HandleGameStateData(byte[] gameStateData)
+        private void HandleMatchStateData(byte[] matchStateData)
         {
-            // Process game state data here
-            Console.WriteLine("Game state data processed.");
+            // Extract player-specific data
+            MatchStatePacket match = new MatchStatePacket();
+            match.Deserialize(matchStateData, NetworkManager.Instance.nm_LastMatchState);
+
+            NetworkManager.Instance.nm_Match.Packet = match;
+            NetworkManager.Instance.nm_Match.updateGO = true;
+            NetworkManager.Instance.nm_LastMatchState = match;
+
+            Debug.Log("Match state data processed.");
         }
 
         private void HandlePlayerData(byte[] playerData)
         {
-            // Process each player packet
             while (playerData.Length > 0)
             {
-                int playerId = BitConverter.ToInt32(playerData, 0); // Similar to ExtractProjectileId
-                HandlePlayerDataPacket(playerId, playerData); // Custom method for processing a single player
-                playerData = TrimProcessedData(playerData, playerId); // Remove processed player packet
+
+                int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
+
+                var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId)
+                    ? NetworkManager.Instance.nm_LastPlayerStates[playerId]
+                    : new PlayerDataPacket();
+
+                PlayerDataPacket player = new PlayerDataPacket();
+                player.Deserialize(playerData, lastState);
+
+                Player existingPlayer = new Player();
+
+                MainThreadInvoker.Invoke(() =>
+                {
+
+                    existingPlayer = NetworkManager.Instance.GetPlayerById(playerId);
+                });
+
+                if (existingPlayer != null)
+                {
+                    existingPlayer.Packet = player;
+                    existingPlayer.updateGO = true;
+                }
+                else
+                {
+                    MainThreadInvoker.Invoke(() =>
+                    {
+                        NetworkManager.Instance.InstatiateGO(player);
+                    });
+
+                    NetworkManager.Instance.nm_StatusText += $"\nPlayer {player.PlayerName} with ID {playerId} not found, instantiating NEW PLAYER.";
+                    Debug.Log($"\nPlayer {player.PlayerName} with ID {playerId} not found, instantiating NEW PLAYER.");
+                }
+
+                NetworkManager.Instance.nm_LastPlayerStates[playerId] = player;
+
+                playerData = TrimProcessedData(playerData, playerId);
             }
+            Debug.Log("Player data processed.");
         }
 
         private void HandleProjectileData(byte[] projectileData)
         {
-            // Process each projectile packet
             while (projectileData.Length > 0)
             {
                 int projectileId = BitConverter.ToInt32(projectileData, 0);
-                HandleProjectilePacket(projectileId, projectileData);
-                projectileData = TrimProcessedData(projectileData, projectileId); // Remove processed projectile packet
+                var lastState = NetworkManager.Instance.nm_LastProjectileStates.ContainsKey(projectileId)
+                    ? NetworkManager.Instance.nm_LastProjectileStates[projectileId]
+                    : new ProjectilePacket();
+
+                ProjectilePacket projectile = new ProjectilePacket();
+                projectile.Deserialize(projectileData, lastState);
+
+                var existingProjectile = NetworkManager.Instance.GetProjectileById(projectileId);
+                if (existingProjectile != null)
+                {
+                    existingProjectile.Packet = projectile;
+                    existingProjectile.updateGO = true;
+                }
+
+                NetworkManager.Instance.nm_LastProjectileStates[projectileId] = projectile;
+
+                projectileData = TrimProcessedData(projectileData, projectileId);
             }
-        }
-
-        private void HandlePlayerDataPacket(int playerId, byte[] playerData)
-        {
-            var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : null;
-
-            // Extract player-specific data
-            PlayerDataPacket player = new PlayerDataPacket();
-            player.Deserialize(playerData, lastState);
-
-            // Update player state in the game
-            var existingPlayer = NetworkManager.Instance.GetPlayerById(playerId);
-            if (existingPlayer != null)
-            {
-                existingPlayer.Packet = player;
-                existingPlayer.updateGO = true;
-            }
-            else
-            {
-                Console.WriteLine($"Player with ID {playerId} not found.");
-            }
-
-            NetworkManager.Instance.nm_LastPlayerStates[playerId] = player;
-        }
-
-        private void HandleProjectilePacket(int projectileId, byte[] projectileData)
-        {
-            var lastState = NetworkManager.Instance.nm_LastProjectileStates.ContainsKey(projectileId) ? NetworkManager.Instance.nm_LastProjectileStates[projectileId] : null;
-
-            // Extract player-specific data
-            ProjectilePacket projectile = new ProjectilePacket();
-            projectile.Deserialize(projectileData, lastState);
-
-            // Update player state in the game
-            var existingProjectile = NetworkManager.Instance.GetProjectileById(projectileId);
-            if (existingProjectile != null)
-            {
-                existingProjectile.Packet = projectile;
-                existingProjectile.updateGO = true;
-            }
-            else
-            {
-                Console.WriteLine($"Projectile with ID {projectileId} not found.");
-            }
-
-            NetworkManager.Instance.nm_LastProjectileStates[projectileId] = projectile;
+            Debug.Log("Projectile data processed.");
         }
 
         private byte[] TrimProcessedData(byte[] data, int processedId)
@@ -263,6 +267,11 @@ namespace HyperStrike
         }
 
         #endregion
+
+        private void OnApplicationQuit()
+        {
+            receive.Abort();
+        }
     }
 
 }
