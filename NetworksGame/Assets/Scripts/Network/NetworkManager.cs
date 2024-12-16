@@ -71,7 +71,7 @@ namespace HyperStrike
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
                 nm_ActivePlayers.Add(player.Packet.PlayerId, player);
-                Debug.Log("Net Player Set: " + username);
+                //Debug.Log("Net Player Set: " + username);
             }
         }
         #endregion
@@ -85,6 +85,7 @@ namespace HyperStrike
             Player player = goInstance.GetComponent<Player>();
             player.Packet = data;
             nm_ActivePlayers.Add(data.PlayerId, player);
+            nm_LastPlayerStates.Add(data.PlayerId, player.Packet);
             Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
         }
 

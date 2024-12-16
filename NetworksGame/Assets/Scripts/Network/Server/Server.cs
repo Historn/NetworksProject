@@ -5,6 +5,7 @@ using System.Threading;
 using UnityEngine;
 using System.IO;
 using System;
+using System.Linq;
 
 namespace HyperStrike
 {
@@ -42,7 +43,7 @@ namespace HyperStrike
             {
                 NetworkManager.Instance.nm_Socket.SendTo(packetToSend, Remote);
                 Debug.Log("PACKET SENT");
-                Thread.Sleep(100); // Delay of 100ms between packets
+                Thread.Sleep(50); // Delay of 100ms between packets
             }
             catch (SocketException ex)
             {
@@ -56,7 +57,7 @@ namespace HyperStrike
             int recv = 0;
 
             NetworkManager.Instance.nm_StatusText += "\nWaiting for new players...";
-            Debug.Log(NetworkManager.Instance.nm_StatusText);
+            //Debug.Log(NetworkManager.Instance.nm_StatusText);
 
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint Remote = (EndPoint)(sender);
@@ -66,24 +67,26 @@ namespace HyperStrike
                 data = new byte[1024];
                 recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
 
+                if (recv == 0) continue;
+
                 int newUser = -1;
 
                 if (server_ConnectedUsers.ContainsKey(Remote))
                     newUser = server_ConnectedUsers[Remote];
 
-
                 Debug.Log("esto va bien?: " + newUser.ToString());
                 // SET MAX 10 PLAYERS
-                if (newUser == -1)
+                if (newUser == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers)
                 {
                     Debug.Log("CREATING NEW USER");
-                    server_ConnectedUsers.Add(Remote, newUser);
 
                     // READ DATA FROM NEW CLIENT
                     var lastState = new PlayerDataPacket();
                     PlayerDataPacket playerDataPacket = new PlayerDataPacket();
                     playerDataPacket.Deserialize(data, lastState);
+
                     Debug.Log($"DATA PACKET RECEIVED: {playerDataPacket.PlayerName} + {playerDataPacket.PlayerId} + {playerDataPacket.Position[0]} + {playerDataPacket.Position[1]} + {playerDataPacket.Position[2]}");
+                    server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
 
                     // Send all data to NEW CLIENT
                     byte[] packetToSend = new byte[1024];
@@ -93,23 +96,23 @@ namespace HyperStrike
 
                     MainThreadInvoker.Invoke(() =>
                     {
-                        // PASS RECEIVED CLIENT DATA
                         NetworkManager.Instance.InstatiateGO(playerDataPacket);
+
+                        // ALL THIS NEEDS TO BE IN THE SAME THREAD AS InstantiateGO
+                        NetworkManager.Instance.nm_StatusText += $"\n{playerDataPacket.PlayerName} joined the server called UDP Server";
+
+                        packetToSend = new byte[1024];
+                        packetToSend = CreatePacketToSend();
+
+                        foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
+                        {
+                            if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && newUser == user.Value)
+                                continue;
+
+                            Thread answer = new Thread(() => SendHost(user.Key, packetToSend));
+                            answer.Start();
+                        }
                     });
-
-                    NetworkManager.Instance.nm_StatusText += $"\n{playerDataPacket.PlayerName} joined the server called UDP Server";
-
-                    packetToSend = new byte[1024];
-                    packetToSend = CreatePacketToSend();
-                    // Change to send everything an detect in client if there's a new CLIENT
-                    foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
-                    {
-                        if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString())
-                            continue;
-
-                        Thread answer = new Thread(() => SendHost(user.Key, packetToSend));
-                        answer.Start();
-                    }
                 }
                 else
                 {
@@ -200,7 +203,7 @@ namespace HyperStrike
                 Thread answer = new Thread(() =>
                 {
                     SendHost(u.Key, packetToSend);
-                    Thread.Sleep(100); // Delay of 10ms between packets
+                    Thread.Sleep(50); // Delay of 50ms between packets
                 });
 
                 answer.Start();
@@ -209,10 +212,12 @@ namespace HyperStrike
 
         void HandlePlayerData(int user, byte[] receivedData, EndPoint Remote)
         {
-
             // Process game state data here
             var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(user) ? NetworkManager.Instance.nm_LastPlayerStates[user] : new PlayerDataPacket();
-            
+
+            //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
+            //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
+
             // Extract player-specific data
             PlayerDataPacket playerPacket = new PlayerDataPacket();
             playerPacket.Deserialize(receivedData, lastState);
@@ -222,6 +227,7 @@ namespace HyperStrike
             if (player != null)
             {
                 player.Packet = playerPacket;
+                //NetworkManager.Instance.nm_LastPlayerStates[user] = playerPacket;
                 player.updateGO = true;
             }   
             else

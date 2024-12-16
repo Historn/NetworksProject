@@ -3,7 +3,7 @@ using System.IO;
 
 namespace HyperStrike
 {
-    public enum PlayerState
+    public enum PlayerState : byte
     {
         IDLE = 0,
         RUNNING,
@@ -15,13 +15,11 @@ namespace HyperStrike
     // BY NOW 74 BYTES?
     public class PlayerDataPacket : Packet
     {
-        public string PlayerName = "Unknown";
-        public int PlayerId = -1;
-        public int CharacterId = -1; // Change to enum
-        public PlayerState State = 0; // Not serialized right now
-        public float UltimateCharge = 0.0f;
-        public float[] Position = new float[3];
-        public float[] Rotation = new float[3]; // Quaternions
+        // 1 + 40 = 41
+        public string PlayerName = "Unknown"; // Make Max 12
+        public int PlayerId = -1; // 4
+        public float[] Position = new float[3]; // 12
+        public float[] Rotation = new float[3]; // 12
 
         public PlayerDataPacket()
         {
@@ -48,11 +46,9 @@ namespace HyperStrike
             {
                 writer.Write((byte)Type);
                 writer.Write(PlayerId);
-                writer.Write(CharacterId);
                 writer.Write(PlayerName);
 
                 // Compare with the last state
-                WriteDelta(writer, lastPlayerData?.UltimateCharge, UltimateCharge);
                 WriteDelta(writer, lastPlayerData?.Position, Position);
                 WriteDelta(writer, lastPlayerData?.Rotation, Rotation);
 
@@ -72,10 +68,8 @@ namespace HyperStrike
             {
                 Type = (PacketType)reader.ReadByte();
                 PlayerId = reader.ReadInt32();
-                CharacterId = reader.ReadInt32();
                 PlayerName = reader.ReadString();
 
-                UltimateCharge = ReadDelta(reader, lastPlayerData?.UltimateCharge);
                 Position = ReadDelta(reader, lastPlayerData?.Position, 3);
                 Rotation = ReadDelta(reader, lastPlayerData?.Rotation, 3);
             }

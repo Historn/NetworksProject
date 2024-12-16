@@ -7,11 +7,11 @@ namespace HyperStrike
     // BY NOW 22 BYTES?
     public class ProjectilePacket : Packet
     {
-        public bool IsActive = true;
-        public bool IsExploding = false;
-        public int ProjectileId = -1;
-        public int ShooterId = -1;
-        public float[] Position = new float[3];
+        // Type(1 Byte) + 32 Bytes = 33
+        public int ProjectileId = -1; // 4
+        public int ShooterId = -1; // 4
+        public float[] Position = new float[3]; // 12
+        public float[] Forward = new float[3]; // 12
 
         public ProjectilePacket()
         {
@@ -33,10 +33,8 @@ namespace HyperStrike
                 writer.Write(ProjectileId);
                 writer.Write(ShooterId);
 
-                WriteBoolDelta(writer, lastProjectileState?.IsActive, IsActive);
-                WriteBoolDelta(writer, lastProjectileState?.IsExploding, IsExploding);
-
                 WriteDelta(writer, lastProjectileState?.Position, Position);
+                WriteDelta(writer, lastProjectileState?.Forward, Forward);
 
                 return ms.ToArray();
             }
@@ -55,9 +53,6 @@ namespace HyperStrike
                 Type = (PacketType)reader.ReadByte();
                 ProjectileId = reader.ReadInt32();
                 ShooterId = reader.ReadInt32();
-
-                IsActive = ReadBoolDelta(reader, lastProjectileState?.IsActive);
-                IsExploding = ReadBoolDelta(reader, lastProjectileState?.IsExploding);
 
                 Position = ReadDelta(reader, lastProjectileState?.Position, 3);
                 

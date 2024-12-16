@@ -52,7 +52,6 @@ public class Rocket : Projectile
         if (other != null) 
         {
             Explode();
-            Packet.IsExploding = true;
         }
     }
 

@@ -46,7 +46,7 @@ public class MenuManager : MonoBehaviour
             username.text));
 
         NetworkManager.Instance.gameObject.GetComponent<Client>().enabled = false;
-        Debug.Log("Debug: Creating Game " + username.text);
+        //Debug.Log("Debug: Creating Game " + username.text);
     }
     
     public void JoinGame(TMP_InputField username)
@@ -63,7 +63,7 @@ public class MenuManager : MonoBehaviour
             username.text));
 
         NetworkManager.Instance.gameObject.GetComponent<Server>().enabled = false;
-        Debug.Log("Debug: Joining Game "+username.text);
+        //Debug.Log("Debug: Joining Game "+username.text);
     }
 
     public void Quit()
