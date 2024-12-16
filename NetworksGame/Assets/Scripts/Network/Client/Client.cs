@@ -15,17 +15,6 @@ namespace HyperStrike
         private bool isSendingPackets = false; // Track if the coroutine is running
         Thread receive;
 
-        void Update()
-        {
-            //if (NetworkManager.Instance.nm_PlayerData != null && NetworkManager.Instance.nm_Connected)
-            //{
-            //    if (!isSendingPackets)
-            //    {
-            //        StartCoroutine(SendPacketsWithDelay()); // Send packet every 50ms
-            //    }
-            //}
-        }
-
         public void StartClient(string username)
         {
             try
@@ -115,13 +104,11 @@ namespace HyperStrike
                 EndPoint Remote = (EndPoint)(sender);
                 int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
 
-                if (recv == 0) continue;
-
                 Debug.Log($"Client received a packet of {recv} bytes");
 
-                HandlePacket(data);
+                if (recv == 0) continue;
 
-                NetworkManager.Instance.nm_StatusText += $"\nReceived data from Host {NetworkManager.Instance.nm_LastMatchState.CurrentTime}";
+                HandlePacket(data);
             }
         }
 
@@ -139,25 +126,26 @@ namespace HyperStrike
             HandlePlayerData(playerData);
 
             // Handle projectile data
-            HandleProjectileData(projectileData);
+            //HandleProjectileData(projectileData);
         }
 
         private (byte[], byte[], byte[]) SeparateDataSections(byte[] data)
         {
+            int headerSize = 8; // By now 8 because we dont have projectiles
+
             // Assuming the data format has a predefined structure
-            int matchStateSectionStart = 0; // Starting index for game state data
-            int matchStateSectionLength = BitConverter.ToInt32(data, matchStateSectionStart); // First 4 bytes define the length
-            int playerSectionStart = matchStateSectionStart + 4 + matchStateSectionLength;
-            int playerSectionLength = BitConverter.ToInt32(data, playerSectionStart); // Next 4 bytes define the player data length
-            int projectileSectionStart = playerSectionStart + 4 + playerSectionLength;
+            
+            int matchStateSectionSize = BitConverter.ToInt32(data, 0); // First 4 bytes define the match data size
+            int matchStateSectionStart = headerSize; // Starting index for match state data
+            
+            int playerSectionSize = BitConverter.ToInt32(data, 4); // Next 4 bytes define the player data length
+            int playerSectionStart = matchStateSectionStart + matchStateSectionSize;
 
-            //if (data.Length < projectileSectionStart)
-            //{
-            //    throw new InvalidOperationException("Invalid data structure.");
-            //}
+            //int projectileSectionSize = BitConverter.ToInt32(data, 8); // Next 4 bytes define the player data length
+            int projectileSectionStart = playerSectionStart + playerSectionSize;
 
-            byte[] matchStateData = data.Skip(4).Take(matchStateSectionLength).ToArray();
-            byte[] playerData = data.Skip(playerSectionStart + 4).Take(playerSectionLength).ToArray();
+            byte[] matchStateData = data.Skip(matchStateSectionStart).Take(matchStateSectionSize).ToArray();
+            byte[] playerData = data.Skip(playerSectionStart).Take(playerSectionSize).ToArray();
             byte[] projectileData = data.Skip(projectileSectionStart).ToArray();
 
             return (matchStateData, playerData, projectileData);
@@ -171,6 +159,7 @@ namespace HyperStrike
 
             NetworkManager.Instance.nm_Match.Packet = match;
             NetworkManager.Instance.nm_Match.updateGO = true;
+
             NetworkManager.Instance.nm_LastMatchState = match;
 
             Debug.Log("Match state data processed.");
@@ -193,6 +182,9 @@ namespace HyperStrike
                 PlayerDataPacket player = new PlayerDataPacket();
                 player.Deserialize(playerData, lastState);
 
+                Debug.Log($"NEW Player State: {player.PlayerName}, {player.PlayerId}, {player.Position[0]}, {player.Position[1]}, {player.Position[2]}");
+
+                // DETECT IF THE PLAYERS IS THE SAME AS THIS CLIENT
                 MainThreadInvoker.Invoke(() =>
                 {
                     Player existingPlayer = NetworkManager.Instance.GetPlayerById(playerId);
@@ -200,15 +192,18 @@ namespace HyperStrike
                     //Debug.Log("PLayer is: " + existingPlayer?.Packet.PlayerName);
                     if (existingPlayer != null)
                     {
-                        existingPlayer.Packet = player;
-                        existingPlayer.updateGO = true;
-                        lastState = player;
+                        if (existingPlayer.Packet.PlayerId != NetworkManager.Instance.nm_PlayerData.PlayerId)
+                        {
+                            existingPlayer.Packet = player;
+                            existingPlayer.updateGO = true;
+                            lastState = player;
+                        }
                     }
                     else
                     {
-                        NetworkManager.Instance.InstatiateGO(player);
                         NetworkManager.Instance.nm_StatusText += $"\nPlayer {player.PlayerName} with ID {playerId} not found, instantiating NEW PLAYER.";
                         Debug.Log($"\nPlayer {player.PlayerName} with ID {playerId} not found, instantiating NEW PLAYER.");
+                        NetworkManager.Instance.InstatiateGO(player);
                     }
                 });
 

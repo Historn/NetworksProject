@@ -71,7 +71,6 @@ namespace HyperStrike
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
                 nm_ActivePlayers.Add(player.Packet.PlayerId, player);
-                //Debug.Log("Net Player Set: " + username);
             }
         }
         #endregion

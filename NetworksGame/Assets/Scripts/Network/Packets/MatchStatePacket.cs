@@ -14,6 +14,10 @@ namespace HyperStrike
         public MatchStatePacket()
         {
             Type = PacketType.MATCH; // Unique packet type for projectiles
+
+            BallPosition[0] = 0;
+            BallPosition[1] = 0;
+            BallPosition[2] = 0;
         }
 
         public override byte[] Serialize(ISerializable lastState)
@@ -50,6 +54,7 @@ namespace HyperStrike
                 Type = (PacketType)reader.ReadByte();
                 LocalGoals = ReadDelta(reader, lastMatchState?.LocalGoals);
                 VisitantGoals = ReadDelta(reader, lastMatchState?.VisitantGoals);
+                CurrentTime = ReadDelta(reader, lastMatchState?.CurrentTime);
                 BallPosition = ReadDelta(reader, lastMatchState?.BallPosition, 3);
             }
         }

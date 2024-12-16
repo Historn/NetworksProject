@@ -43,7 +43,7 @@ namespace HyperStrike
             {
                 NetworkManager.Instance.nm_Socket.SendTo(packetToSend, Remote);
                 Debug.Log("PACKET SENT");
-                Thread.Sleep(50); // Delay of 100ms between packets
+                Thread.Sleep(10); // Delay of 10ms between packets
             }
             catch (SocketException ex)
             {
@@ -57,7 +57,6 @@ namespace HyperStrike
             int recv = 0;
 
             NetworkManager.Instance.nm_StatusText += "\nWaiting for new players...";
-            //Debug.Log(NetworkManager.Instance.nm_StatusText);
 
             IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
             EndPoint Remote = (EndPoint)(sender);
@@ -66,17 +65,14 @@ namespace HyperStrike
             {
                 data = new byte[1024];
                 recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
-
-                if (recv == 0) continue;
+                NetworkManager.Instance.nm_StatusText = $"\nServer received a packet of {recv} bytes";
 
                 int newUser = -1;
 
                 if (server_ConnectedUsers.ContainsKey(Remote))
                     newUser = server_ConnectedUsers[Remote];
 
-                Debug.Log("esto va bien?: " + newUser.ToString());
-                // SET MAX 10 PLAYERS
-                if (newUser == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers)
+                if (newUser == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
                     Debug.Log("CREATING NEW USER");
 
@@ -103,20 +99,25 @@ namespace HyperStrike
 
                         packetToSend = new byte[1024];
                         packetToSend = CreatePacketToSend();
-
-                        foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
+                        
+                        if (server_ConnectedUsers.Count > 1)
                         {
-                            if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && newUser == user.Value)
-                                continue;
+                            foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
+                            {
+                                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && newUser == user.Value)
+                                    continue;
 
-                            Thread answer = new Thread(() => SendHost(user.Key, packetToSend));
-                            answer.Start();
+                                Thread answer = new Thread(() => SendHost(user.Key, packetToSend));
+                                answer.Start();
+                            }
                         }
                     });
                 }
                 else
                 {
-                    HandlePlayerData(newUser, data, Remote);
+                    if(recv > 0)
+                        HandlePlayerData(newUser, data, Remote);
+
                     SendPacket(Remote);
                 }
             }
@@ -167,12 +168,7 @@ namespace HyperStrike
                     memoryStream.Write(playersData, 0, playersData.Length);
                 }
 
-                // Serialize Pool of Projectiles
-                //foreach (KeyValuePair<int, Player> p in NetworkManager.instance.nm_ActivePlayers)
-                //{
-                //    var lastState = lastProjectileStates.ContainsKey(currentProjectState.ProjectileId) ? lastProjectileStates[currentState.ProjectileId] : null;
-                //    hostPacket += p.Value.Packet.Serialize(lastState);
-                //}
+                // PROJECTILES ENVIAR SOLO LA PRIMERA VEZ QUE SE RECIBEN
 
                 // Add Header
                 memoryStream.Position = 0;
@@ -196,14 +192,14 @@ namespace HyperStrike
 
             foreach (KeyValuePair<EndPoint, int> u in server_ConnectedUsers)
             {
-                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == u.Key.ToString() || Remote.ToString() == u.Key.ToString())
+                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == u.Key.ToString())
                     continue;
 
                 // SEND PACKETS
                 Thread answer = new Thread(() =>
                 {
                     SendHost(u.Key, packetToSend);
-                    Thread.Sleep(50); // Delay of 50ms between packets
+                    Thread.Sleep(10); // Delay of 10ms between packets
                 });
 
                 answer.Start();
