@@ -187,6 +187,7 @@ public class Match : MonoBehaviour
     {
         currentMatchTime = Packet.CurrentTime;
         ball.transform.position = new Vector3(Packet.BallPosition[0], Packet.BallPosition[1], Packet.BallPosition[2]);
+        ball.transform.eulerAngles = new Vector3(Packet.BallRotation[0], Packet.BallRotation[1], Packet.BallRotation[2]);
     }
 
     void UpdateMatchPacket()
@@ -195,5 +196,8 @@ public class Match : MonoBehaviour
         Packet.BallPosition[0] = ball.transform.position.x;
         Packet.BallPosition[1] = ball.transform.position.y;
         Packet.BallPosition[2] = ball.transform.position.z;
+        Packet.BallRotation[0] = ball.transform.eulerAngles.x;
+        Packet.BallRotation[1] = ball.transform.eulerAngles.y;
+        Packet.BallRotation[2] = ball.transform.eulerAngles.z;
     } 
 }

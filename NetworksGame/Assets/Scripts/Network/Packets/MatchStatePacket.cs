@@ -10,6 +10,7 @@ namespace HyperStrike
         public int VisitantGoals = -1; // 4
         public float CurrentTime = 0.0f; // 4
         public float[] BallPosition = new float[3]; // 12
+        public float[] BallRotation = new float[3]; // 14
 
         public MatchStatePacket()
         {
@@ -18,6 +19,10 @@ namespace HyperStrike
             BallPosition[0] = 0;
             BallPosition[1] = 0;
             BallPosition[2] = 0;
+            
+            BallRotation[0] = 0;
+            BallRotation[1] = 0;
+            BallRotation[2] = 0;
         }
 
         public override byte[] Serialize(ISerializable lastState)
@@ -36,6 +41,7 @@ namespace HyperStrike
                 WriteDelta(writer, lastMatchState?.VisitantGoals, VisitantGoals);
                 WriteDelta(writer, lastMatchState?.CurrentTime, CurrentTime);
                 WriteDelta(writer, lastMatchState?.BallPosition, BallPosition);
+                WriteDelta(writer, lastMatchState?.BallRotation, BallRotation);
 
                 return ms.ToArray();
             }
@@ -56,6 +62,7 @@ namespace HyperStrike
                 VisitantGoals = ReadDelta(reader, lastMatchState?.VisitantGoals);
                 CurrentTime = ReadDelta(reader, lastMatchState?.CurrentTime);
                 BallPosition = ReadDelta(reader, lastMatchState?.BallPosition, 3);
+                BallRotation = ReadDelta(reader, lastMatchState?.BallRotation, 3);
             }
         }
     }
