@@ -1,4 +1,5 @@
 using HyperStrike;
+using System.Collections;
 using UnityEngine;
 
 public class Rocket : Projectile
@@ -6,7 +7,6 @@ public class Rocket : Projectile
     float force = 30f;
     float explosionForce = 800f;
     float radius = 20f;
-    //[SerializeField] GameObject shooter;
     //[SerializeField] GameObject explosionFX;
     [SerializeField] Rigidbody body;
 
@@ -17,32 +17,15 @@ public class Rocket : Projectile
         // Spawns from the player that shot
         body = GetComponent<Rigidbody>();
 
-        Move();
+        if (body != null)
+        {
+            Move();
+        }
+        else
+            Destroy(gameObject);
 
         // ADD IENUM TO DESTROY ROCKET AFTER A PERIOD OF TIME
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (updateGO)
-        {
-            UpdateGameObjectData();
-            updateGO = false;
-        }
-        UpdateRocketData();
-    }
-
-    void UpdateRocketData()
-    {
-        Packet.Position[0] = this.gameObject.transform.position.x;
-        Packet.Position[1] = this.gameObject.transform.position.y;
-        Packet.Position[2] = this.gameObject.transform.position.z;
-    }
-
-    void UpdateGameObjectData()
-    {
-        this.gameObject.transform.position = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
+        StartCoroutine(DestroyRocket());
     }
 
     private void OnCollisionEnter(Collision other)
@@ -90,5 +73,11 @@ public class Rocket : Projectile
         //}
 
         // Add VFX
+    }
+
+    IEnumerator DestroyRocket()
+    {
+        yield return new WaitForSeconds(5);
+        Destroy(gameObject);
     }
 }

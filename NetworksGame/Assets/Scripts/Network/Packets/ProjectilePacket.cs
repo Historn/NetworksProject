@@ -7,15 +7,23 @@ namespace HyperStrike
     // BY NOW 22 BYTES?
     public class ProjectilePacket : Packet
     {
-        // Type(1 Byte) + 32 Bytes = 33
         public int ProjectileId = -1; // 4
         public int ShooterId = -1; // 4
         public float[] Position = new float[3]; // 12
-        public float[] Forward = new float[3]; // 12
+        public float[] Rotation = new float[4]; // 16 Quaternion for instances
 
         public ProjectilePacket()
         {
             Type = PacketType.PROJECTILE; // Unique packet type for projectiles
+
+            Position[0] = 0;
+            Position[1] = 0;
+            Position[2] = 0;
+
+            Rotation[0] = 0;
+            Rotation[1] = 0;
+            Rotation[2] = 0;
+            Rotation[3] = 0;
         }
         
         public override byte[] Serialize(ISerializable lastState)
@@ -34,7 +42,7 @@ namespace HyperStrike
                 writer.Write(ShooterId);
 
                 WriteDelta(writer, lastProjectileState?.Position, Position);
-                WriteDelta(writer, lastProjectileState?.Forward, Forward);
+                WriteDelta(writer, lastProjectileState?.Rotation, Rotation);
 
                 return ms.ToArray();
             }
@@ -51,11 +59,12 @@ namespace HyperStrike
             using (BinaryReader reader = new BinaryReader(ms))
             {
                 Type = (PacketType)reader.ReadByte();
+
                 ProjectileId = reader.ReadInt32();
                 ShooterId = reader.ReadInt32();
 
                 Position = ReadDelta(reader, lastProjectileState?.Position, 3);
-                
+                Rotation = ReadDelta(reader, lastProjectileState?.Rotation, 4);
             }
         }
     }

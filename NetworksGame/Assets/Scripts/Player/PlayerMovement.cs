@@ -83,7 +83,7 @@ public class PlayerMovement : MonoBehaviour
         //Ground Check
         isGrounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, groundMask);
 
-        MovementInput();
+        Input();
         LimitSpeed();
 
         //Handle Drag
@@ -98,18 +98,18 @@ public class PlayerMovement : MonoBehaviour
         MovePlayer();
     }
 
-    void MovementInput()
+    void Input()
     {
         if (cameraTransform != null)
         {
             RotatePlayerWithCamera();
         }
 
-        horizontalInput = Input.GetAxisRaw("Horizontal");
-        verticalInput = Input.GetAxisRaw("Vertical");
+        horizontalInput = UnityEngine.Input.GetAxisRaw("Horizontal");
+        verticalInput = UnityEngine.Input.GetAxisRaw("Vertical");
 
         //Jump
-        if (Input.GetKey(jumpKey) && readyToJump && isGrounded)
+        if (UnityEngine.Input.GetKey(jumpKey) && readyToJump && isGrounded)
         {
             readyToJump = false;
             Jump();
@@ -117,7 +117,7 @@ public class PlayerMovement : MonoBehaviour
         }
         
         //Attack
-        if (Input.GetKey(attackKey) && attackReady)
+        if (UnityEngine.Input.GetKey(attackKey) && attackReady)
         {
             attackReady = false;
             Attack();
@@ -142,8 +142,8 @@ public class PlayerMovement : MonoBehaviour
     private void RotatePlayerWithCamera()
     {
         // Get mouse input
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+        float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+        float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
         // Adjust xRotation for vertical rotation and clamp it
         xRotation -= mouseY;
@@ -186,7 +186,8 @@ public class PlayerMovement : MonoBehaviour
         Projectile rocket = rocketGO.GetComponent<Projectile>();
         if (rocket != null) 
         {
-            rocket.playerShooterID = gameObject.GetComponent<Player>().Packet.PlayerId;
+            rocket.SetPacket(IDGenerator.GenerateID(), gameObject.GetComponent<Player>().Packet.PlayerId, rocketGO.transform.position, rocketGO.transform.localRotation);
+            NetworkManager.Instance.nm_ProjectilesToSend.Add(rocket.Packet.ProjectileId, rocket);
         }
     }
 

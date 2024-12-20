@@ -6,8 +6,6 @@ using UnityEngine;
 
 public class Match : MonoBehaviour
 {
-    public bool updateGO = false;
-
     private float currentMatchTime = 300f;
     private Coroutine matchTimerCoroutine;
 
@@ -30,6 +28,7 @@ public class Match : MonoBehaviour
     [SerializeField] private GameObject visitantGoalVFX;
 
     public MatchStatePacket Packet;
+    public bool updateGO = false;
 
     private void Awake()
     {
@@ -49,7 +48,7 @@ public class Match : MonoBehaviour
             UpdateGameObjectData();
             updateGO = false;
         }
-        UpdateMatchPacket();
+        UpdatePacket();
     }
 
     void InitMatch()
@@ -190,7 +189,7 @@ public class Match : MonoBehaviour
         ball.transform.eulerAngles = new Vector3(Packet.BallRotation[0], Packet.BallRotation[1], Packet.BallRotation[2]);
     }
 
-    void UpdateMatchPacket()
+    void UpdatePacket()
     {
         Packet.CurrentTime = currentMatchTime;
         Packet.BallPosition[0] = ball.transform.position.x;
