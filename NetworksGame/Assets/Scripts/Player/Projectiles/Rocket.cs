@@ -1,4 +1,5 @@
 using HyperStrike;
+using System.Collections;
 using UnityEngine;
 
 public class Rocket : Projectile
@@ -19,6 +20,7 @@ public class Rocket : Projectile
         Move();
 
         // ADD IENUM TO DESTROY ROCKET AFTER A PERIOD OF TIME
+        StartCoroutine(DestroyRocket());
     }
 
     private void OnCollisionEnter(Collision other)
@@ -66,5 +68,11 @@ public class Rocket : Projectile
         //}
 
         // Add VFX
+    }
+
+    IEnumerator DestroyRocket()
+    {
+        yield return new WaitForSeconds(5);
+        Destroy(gameObject);
     }
 }

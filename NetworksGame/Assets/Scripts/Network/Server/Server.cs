@@ -92,14 +92,9 @@ namespace HyperStrike
 
                     MainThreadInvoker.Invoke(() =>
                     {
-                        NetworkManager.Instance.InstatiateGO(playerDataPacket);
-
-                        // ALL THIS NEEDS TO BE IN THE SAME THREAD AS InstantiateGO
-                        NetworkManager.Instance.nm_StatusText += $"\n{playerDataPacket.PlayerName} joined the server called UDP Server";
-
                         packetToSend = new byte[1024];
                         packetToSend = CreatePacketToSend();
-                        
+
                         if (server_ConnectedUsers.Count > 1)
                         {
                             foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
@@ -263,35 +258,38 @@ namespace HyperStrike
 
         PlayerDataPacket HandlePlayerData(byte[] playerData)
         {
-            if (playerData.Length > 0)
+            int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
+
+            // Process game state data here
+            var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : new PlayerDataPacket();
+
+            //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
+            //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
+
+            // Extract player-specific data
+            PlayerDataPacket playerPacket = new PlayerDataPacket();
+            playerPacket.Deserialize(playerData, lastState);
+
+            var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(playerId) ? NetworkManager.Instance.nm_ActivePlayers[playerId] : null;
+            Debug.Log($"ESTE JUGADOR HA ENVIADO PACK {playerPacket.PlayerName}");
+            if (player != null)
             {
-                int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
-
-                // Process game state data here
-                var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : new PlayerDataPacket();
-
-                //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
-                //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
-
-                // Extract player-specific data
-                PlayerDataPacket playerPacket = new PlayerDataPacket();
-                playerPacket.Deserialize(playerData, lastState);
-
-                var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(playerId) ? NetworkManager.Instance.nm_ActivePlayers[playerId] : null;
-                Debug.Log($"ESTE JUGADOR HA ENVIADO PACK {playerPacket.PlayerName}");
-                if (player != null)
-                {
-                    player.Packet = playerPacket;
-                    player.updateGO = true;
-                    lastState = playerPacket;
-                }
-                else
-                {
-                    Debug.Log("Player Not Found");
-                }
-                return playerPacket;
+                player.Packet = playerPacket;
+                player.updateGO = true;
+                lastState = playerPacket;
             }
-            return null;
+            else
+            {
+                Debug.Log("Player Not Found");
+                MainThreadInvoker.Invoke(() =>
+                {
+                    NetworkManager.Instance.InstatiateGO(playerPacket);
+
+                    // ALL THIS NEEDS TO BE IN THE SAME THREAD AS InstantiateGO
+                    NetworkManager.Instance.nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
+                });
+            }
+            return playerPacket;
         }
         
         void HandleProjectileData(byte[] projectileData)

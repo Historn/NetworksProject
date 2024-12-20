@@ -17,15 +17,6 @@ public abstract class Projectile : MonoBehaviour
         NetworkManager.Instance.nm_ProjectilesToSend.Add(Packet.ProjectileId, this);
     }
 
-    private void Update()
-    {
-        if (updateGO)
-        {
-            UpdateGameObjectData();
-            updateGO = false;
-        }
-    }
-
     public abstract void Move();
     public abstract void ApplyDamage(GameObject collidedGO);
 
