@@ -165,19 +165,22 @@ namespace HyperStrike
 
                 // PROJECTILES ENVIAR SOLO LA PRIMERA VEZ QUE SE RECIBEN
                 MemoryStream projectilesStream = new MemoryStream();
-                
-                foreach (KeyValuePair<int, Projectile> pr in NetworkManager.Instance.nm_ProjectilesToSend)
+                if (NetworkManager.Instance.nm_ProjectilesToSend.Count>0)
                 {
-                    var lastProjectileState = new ProjectilePacket();
-
-                    byte[] projectilePacket = pr.Value.Packet.Serialize(lastProjectileState);
-                    if (memoryStream.Length + projectilesStream.Length + projectilePacket.Length > 1024)
+                    foreach (KeyValuePair<int, Projectile> pr in NetworkManager.Instance.nm_ProjectilesToSend)
                     {
-                        Debug.LogWarning($"Skipping projectile {pr.Key} due to packet size limit.");
-                        break;
+                        var lastProjectileState = new ProjectilePacket();
+
+                        byte[] projectilePacket = pr.Value.Packet.Serialize(lastProjectileState);
+                        if (memoryStream.Length + projectilesStream.Length + projectilePacket.Length > 1024)
+                        {
+                            Debug.LogWarning($"Skipping projectile {pr.Key} due to packet size limit.");
+                            break;
+                        }
+                        projectilesStream.Write(projectilePacket, 0, projectilePacket.Length);
                     }
-                    projectilesStream.Write(projectilePacket, 0, projectilePacket.Length);
                 }
+                
                 NetworkManager.Instance.nm_ProjectilesToSend.Clear();
                 // Write projectile data to the main packet
                 byte[] projectilesData = projectilesStream.ToArray();
@@ -234,6 +237,7 @@ namespace HyperStrike
             // Handle player data
             PlayerDataPacket playerDataPacket = HandlePlayerData(playerData);
 
+            Debug.Log("Now we will process projectiles");
             // Handle projectile data
             HandleProjectileData(projectileData);
 
@@ -289,11 +293,13 @@ namespace HyperStrike
                     NetworkManager.Instance.nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
                 });
             }
+            Debug.Log("Player Data processed");
             return playerPacket;
         }
         
         void HandleProjectileData(byte[] projectileData)
         {
+            Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
             while (projectileData.Length > 0)
             {
                 int projectileId = BitConverter.ToInt32(projectileData, 1);
@@ -301,7 +307,8 @@ namespace HyperStrike
 
                 ProjectilePacket projectile = new ProjectilePacket();
                 projectile.Deserialize(projectileData, lastState);
-                if (projectileId != 0 && projectileId != -1)
+                Debug.Log($"PROJECTILE id: {projectileId}");
+                if (projectileId != 0 && projectileId != -1 && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId))
                 {
                     MainThreadInvoker.Invoke(() =>
                     {
@@ -311,7 +318,12 @@ namespace HyperStrike
                         NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
                     });
                 }
-                projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId);
+                else
+                {
+                    break;
+                }
+                projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId); 
+                Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
             }
             Debug.Log("Projectile data processed.");
         }

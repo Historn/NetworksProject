@@ -79,19 +79,22 @@ namespace HyperStrike
 
                 // PROJECTILES ENVIAR SOLO LA PRIMERA VEZ QUE SE RECIBEN
                 MemoryStream projectilesStream = new MemoryStream();
-
-                foreach (KeyValuePair<int, Projectile> pr in NetworkManager.Instance.nm_ProjectilesToSend)
+                if (NetworkManager.Instance.nm_ProjectilesToSend.Count > 0)
                 {
-                    var lastStateProjectile = new ProjectilePacket();
-
-                    byte[] projectilePacket = pr.Value.Packet.Serialize(lastStateProjectile);
-                    if (memoryStream.Length + projectilesStream.Length + projectilePacket.Length > 1024)
+                    foreach (KeyValuePair<int, Projectile> pr in NetworkManager.Instance.nm_ProjectilesToSend)
                     {
-                        Debug.LogWarning($"Skipping projectile {pr.Key} due to packet size limit.");
-                        break;
+                        var lastStateProjectile = new ProjectilePacket();
+
+                        byte[] projectilePacket = pr.Value.Packet.Serialize(lastStateProjectile);
+                        if (memoryStream.Length + projectilesStream.Length + projectilePacket.Length > 1024)
+                        {
+                            Debug.LogWarning($"Skipping projectile {pr.Key} due to packet size limit.");
+                            break;
+                        }
+                        projectilesStream.Write(projectilePacket, 0, projectilePacket.Length);
                     }
-                    projectilesStream.Write(projectilePacket, 0, projectilePacket.Length);
                 }
+                
                 NetworkManager.Instance.nm_ProjectilesToSend.Clear();
                 // Write player data to the main packet
                 byte[] projectilesData = projectilesStream.ToArray();
@@ -222,15 +225,11 @@ namespace HyperStrike
                 {
                     Player existingPlayer = NetworkManager.Instance.GetPlayerById(playerId);
 
-                    //Debug.Log("PLayer is: " + existingPlayer?.Packet.PlayerName);
-                    if (existingPlayer != null)
+                    if (existingPlayer != null && existingPlayer.Packet.PlayerId != NetworkManager.Instance.nm_PlayerData.PlayerId)
                     {
-                        if (existingPlayer.Packet.PlayerId != NetworkManager.Instance.nm_PlayerData.PlayerId)
-                        {
-                            existingPlayer.Packet = player;
-                            existingPlayer.updateGO = true;
-                            lastState = player;
-                        }
+                        existingPlayer.Packet = player;
+                        existingPlayer.updateGO = true;
+                        lastState = player;
                     }
                     else
                     {
@@ -256,7 +255,7 @@ namespace HyperStrike
                 projectile.Deserialize(projectileData, lastState);
 
                 // Check if it wasnt created by this player
-                if (projectile.ProjectileId != 0 && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId))
+                if (projectile.ProjectileId != 0 && projectileId != -1 && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId))
                 {
                     MainThreadInvoker.Invoke(() =>
                     {
@@ -264,6 +263,10 @@ namespace HyperStrike
                         NetworkManager.Instance.InstatiateProjectile(projectile);
                         NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
                     });
+                }
+                else
+                {
+                    break;
                 }
 
                 projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId);

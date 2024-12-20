@@ -73,6 +73,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d886b1e856d739042be6e055987761cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  updateGO: 0
   body: {fileID: 0}
 --- !u!1 &3634478794509519919
 GameObject:
@@ -192,7 +193,7 @@ GameObject:
   - component: {fileID: 7625885779184577208}
   - component: {fileID: 3041956669633372132}
   - component: {fileID: 1624905564888518979}
-  - component: {fileID: 2270684296341878013}
+  - component: {fileID: 4101217660795191656}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
@@ -210,7 +211,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.1, y: 0.1, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8736309203162360795}
@@ -266,8 +267,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &2270684296341878013
-SphereCollider:
+--- !u!136 &4101217660795191656
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -284,6 +285,8 @@ SphereCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 2
+  m_Radius: 0.45898747
+  m_Height: 1.0165048
+  m_Direction: 2
+  m_Center: {x: 0, y: -0.01, z: 0.00015735626}
