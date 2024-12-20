@@ -55,7 +55,7 @@ namespace HyperStrike
 
         private void SendClientPacket()
         {
-            Debug.Log("Client Creating Packet to Send");
+            //Debug.Log("Client Creating Packet to Send");
 
             byte[] clientPacket = new byte[1024];
 
@@ -65,7 +65,7 @@ namespace HyperStrike
                 int headerSize = 8; // 4 bytes for player state size change to 8 for +Projectiles
                 memoryStream.Position = headerSize;
 
-                Debug.Log("Creating Player State Packet");
+                //Debug.Log("Creating Player State Packet");
 
                 int id = NetworkManager.Instance.nm_PlayerData.PlayerId;
 
@@ -114,7 +114,7 @@ namespace HyperStrike
             }
 
             NetworkManager.Instance.nm_Socket.SendTo(clientPacket, NetworkManager.Instance.nm_ServerEndPoint);
-            Debug.Log("Client Packet Sent");
+            //Debug.Log("Client Packet Sent");
         }
 
         private IEnumerator SendPacketsWithDelay()
@@ -198,14 +198,14 @@ namespace HyperStrike
 
             NetworkManager.Instance.nm_LastMatchState = match;
 
-            Debug.Log("Match state data processed.");
+            //Debug.Log("Match state data processed.");
         }
 
         private void HandlePlayerData(byte[] playerData)
         {
             while (playerData.Length > 0)
             {
-                Debug.Log("DATA LENGTH FOR PLAYERS is: " + playerData.Length);
+                //Debug.Log("DATA LENGTH FOR PLAYERS is: " + playerData.Length);
 
                 int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
 
@@ -218,7 +218,7 @@ namespace HyperStrike
                 PlayerDataPacket player = new PlayerDataPacket();
                 player.Deserialize(playerData, lastState);
 
-                Debug.Log($"NEW Player State: {player.PlayerName}, {player.PlayerId}, {player.Position[0]}, {player.Position[1]}, {player.Position[2]}");
+                //Debug.Log($"NEW Player State: {player.PlayerName}, {player.PlayerId}, {player.Position[0]}, {player.Position[1]}, {player.Position[2]}");
 
                 // DETECT IF THE PLAYERS IS THE SAME AS THIS CLIENT
                 MainThreadInvoker.Invoke(() =>
@@ -263,8 +263,8 @@ namespace HyperStrike
                     {
                         Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
                         Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
-                        NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
-                        NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
+                        if (!NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId)) NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
+                        if (!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
                     });
                 }
                 else

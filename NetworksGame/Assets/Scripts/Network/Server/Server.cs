@@ -316,8 +316,8 @@ namespace HyperStrike
                     {
                         Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
                         Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
-                        NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
-                        NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
+                        if (!NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId)) NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
+                        if(!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
                     });
                 }
                 else
