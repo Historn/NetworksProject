@@ -17,7 +17,12 @@ public class Rocket : Projectile
         // Spawns from the player that shot
         body = GetComponent<Rigidbody>();
 
-        Move();
+        if (body != null)
+        {
+            Move();
+        }
+        else
+            Destroy(gameObject);
 
         // ADD IENUM TO DESTROY ROCKET AFTER A PERIOD OF TIME
         StartCoroutine(DestroyRocket());

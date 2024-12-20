@@ -255,12 +255,15 @@ namespace HyperStrike
                 projectile.Deserialize(projectileData, lastState);
 
                 // Check if it wasnt created by this player
-                if (projectile.ProjectileId != 0 && projectileId != -1 && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId))
+                if (projectile.ProjectileId != 0 && projectile.ProjectileId != -1 
+                    && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId) 
+                    && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
                 {
                     MainThreadInvoker.Invoke(() =>
                     {
                         Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
-                        NetworkManager.Instance.InstatiateProjectile(projectile);
+                        Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
+                        NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
                         NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
                     });
                 }

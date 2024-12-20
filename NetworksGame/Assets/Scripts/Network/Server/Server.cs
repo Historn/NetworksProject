@@ -307,8 +307,10 @@ namespace HyperStrike
 
                 ProjectilePacket projectile = new ProjectilePacket();
                 projectile.Deserialize(projectileData, lastState);
-                Debug.Log($"PROJECTILE id: {projectileId}");
-                if (projectileId != 0 && projectileId != -1 && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId))
+                Debug.Log($"PROJECTILE id: {projectile.ProjectileId}");
+                if (projectile.ProjectileId != 0 && projectile.ProjectileId != -1 
+                    && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId) 
+                    && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
                 {
                     MainThreadInvoker.Invoke(() =>
                     {
