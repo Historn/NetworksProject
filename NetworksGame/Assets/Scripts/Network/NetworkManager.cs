@@ -9,6 +9,7 @@ using UnityEngine.Networking;
 using TMPro;
 using System.Linq;
 using UnityEngine.SceneManagement;
+using System;
 
 namespace HyperStrike
 {
@@ -26,6 +27,7 @@ namespace HyperStrike
         [HideInInspector] public bool nm_Connected = false;
 
         [SerializeField]GameObject clientInstancePrefab;
+        [SerializeField]GameObject rocketInstancePrefab;
 
         [HideInInspector] public GameObject nm_Player;
         public PlayerDataPacket nm_PlayerData = new PlayerDataPacket();
@@ -37,11 +39,11 @@ namespace HyperStrike
 
         [HideInInspector]
         public Dictionary<int, Player> nm_ActivePlayers = new Dictionary<int, Player>();
-        public Dictionary<int, Projectile> nm_ActiveProjectiles = new Dictionary<int, Projectile>();
+        public Dictionary<int, Projectile> nm_ProjectilesToSend = new Dictionary<int, Projectile>();
+        public List<int> nm_ActiveProjectiles = new List<int>();
 
         [HideInInspector]
         public Dictionary<int, PlayerDataPacket> nm_LastPlayerStates = new Dictionary<int, PlayerDataPacket>();
-        public Dictionary<int, ProjectilePacket> nm_LastProjectileStates = new Dictionary<int, ProjectilePacket>();
 
         // Start is called before the first frame update
         void Start()
@@ -87,6 +89,15 @@ namespace HyperStrike
             nm_LastPlayerStates.Add(data.PlayerId, player.Packet);
             Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
         }
+        
+        public Projectile InstatiateProjectile(ProjectilePacket data)
+        {
+            GameObject goInstance = Instantiate(rocketInstancePrefab, new Vector3(data.Position[0], data.Position[1], data.Position[2]), new Quaternion(data.Rotation[0], data.Rotation[1], data.Rotation[2], data.Rotation[3]));
+            Projectile projectile = goInstance.GetComponent<Projectile>();
+            projectile.Packet = data;
+            Debug.Log($"PROJECTILE CREATED: {data.ProjectileId} from {data.ShooterId}");
+            return projectile;
+        }
 
         public Player GetPlayerById(int id)
         {
@@ -95,7 +106,32 @@ namespace HyperStrike
         
         public Projectile GetProjectileById(int id)
         {
-            return nm_ActiveProjectiles.ContainsKey(id) ? nm_ActiveProjectiles[id] : null;
+            return nm_ProjectilesToSend.ContainsKey(id) ? nm_ProjectilesToSend[id] : null;
+        }
+
+        public byte[] TrimProcessedData(byte[] data, int processedId)
+        {
+            // Assuming fixed packet sizes or ability to determine processed packet length
+            int processedPacketLength = CalculatePacketLength(data, processedId); // Implement based on your format
+            return data.Skip(processedPacketLength).ToArray();
+        }
+
+        private int CalculatePacketLength(byte[] data, int processedId)
+        {
+            // Example logic for determining packet length based on the data structure
+            // Assuming the first 4 bytes after the ID represent the packet length
+
+            int idOffset = 4; // Offset where ID ends
+            int lengthOffset = idOffset; // Position where length is stored
+
+            if (data.Length < lengthOffset + 4)
+            {
+                throw new InvalidOperationException("Data is too short to determine packet length.");
+            }
+
+            // Extract the packet length (assuming 4-byte integer)
+            int packetLength = BitConverter.ToInt32(data, lengthOffset);
+            return packetLength;
         }
 
         #endregion

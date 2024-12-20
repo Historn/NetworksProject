@@ -22,7 +22,7 @@ namespace HyperStrike
             NetworkManager.Instance.nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             NetworkManager.Instance.nm_Socket.Bind(ipep);
             
-            int userID = PlayerIDGenerator.GeneratePlayerID();
+            int userID = IDGenerator.GenerateID();
 
             server_ConnectedUsers.Add(NetworkManager.Instance.nm_Socket.LocalEndPoint, userID);
 
@@ -77,9 +77,9 @@ namespace HyperStrike
                     Debug.Log("CREATING NEW USER");
 
                     // READ DATA FROM NEW CLIENT
-                    var lastState = new PlayerDataPacket();
-                    PlayerDataPacket playerDataPacket = new PlayerDataPacket();
-                    playerDataPacket.Deserialize(data, lastState);
+                    PlayerDataPacket playerDataPacket = HandlePacket(data);
+
+                    if (playerDataPacket == null) continue;
 
                     Debug.Log($"DATA PACKET RECEIVED: {playerDataPacket.PlayerName} + {playerDataPacket.PlayerId} + {playerDataPacket.Position[0]} + {playerDataPacket.Position[1]} + {playerDataPacket.Position[2]}");
                     server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
@@ -116,7 +116,7 @@ namespace HyperStrike
                 else
                 {
                     if(recv > 0)
-                        HandlePlayerData(newUser, data, Remote);
+                        HandlePacket(data);
 
                     SendPacket(Remote);
                 }
@@ -125,7 +125,7 @@ namespace HyperStrike
 
         #region REPLICATION
         // HOST HAS TO SEND
-        // GAME STATE + CLIENTS STATE + GENERAL NET OBJECTS WITH ITS ¿ACTIONS?
+        // GAME STATE + CLIENTS STATE + GENERAL NET OBJECTS WITH ITS ACTIONS?
         byte[] CreatePacketToSend()
         {
             byte[] hostPacket = new byte[1024];
@@ -133,49 +133,74 @@ namespace HyperStrike
             using (MemoryStream memoryStream = new MemoryStream())
             {
                 // Add a header for metadata 
-                int headerSize = 8; // 4 bytes for match state size, 4 bytes for player states size
+                int headerSize = 12; // 4 bytes for match state size, 4 bytes for player states size, 4 for projectiles
                 memoryStream.Position = headerSize;
 
                 Debug.Log("Creating Match State Packet");
 
                 byte[] matchStateData = NetworkManager.Instance.nm_Match.Packet.Serialize(NetworkManager.Instance.nm_LastMatchState);
                 memoryStream.Write(matchStateData, 0, matchStateData.Length);
-
+                
                 Debug.Log("Creating Players State Packet");
-                using (MemoryStream playerStream = new MemoryStream())
+                MemoryStream playerStream = new MemoryStream();
+             
+                foreach (KeyValuePair<int, Player> p in NetworkManager.Instance.nm_ActivePlayers)
                 {
-                    foreach (KeyValuePair<int, Player> p in NetworkManager.Instance.nm_ActivePlayers)
-                    {
-                        var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(p.Value.Packet.PlayerId)
-                            ? NetworkManager.Instance.nm_LastPlayerStates[p.Value.Packet.PlayerId]
-                            : new PlayerDataPacket();
+                    var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(p.Value.Packet.PlayerId)
+                        ? NetworkManager.Instance.nm_LastPlayerStates[p.Value.Packet.PlayerId]
+                        : new PlayerDataPacket();
 
-                        byte[] playerPacket = p.Value.Packet.Serialize(lastState);
-                        if (memoryStream.Length + playerStream.Length + playerPacket.Length > 1024)
-                        {
-                            Debug.LogWarning($"Skipping player {p.Key} due to packet size limit.");
-                            break;
-                        }
-                        playerStream.Write(playerPacket, 0, playerPacket.Length);
-                    }
-                    // Write player data to the main packet
-                    byte[] playersData = playerStream.ToArray();
-                    if (memoryStream.Length + playersData.Length > 1024)
+                    byte[] playerPacket = p.Value.Packet.Serialize(lastState);
+                    if (memoryStream.Length + playerStream.Length + playerPacket.Length > 1024)
                     {
-                        Debug.LogWarning("Player data exceeds packet size.");
-                        return null;
+                        Debug.LogWarning($"Skipping player {p.Key} due to packet size limit.");
+                        break;
                     }
-                    memoryStream.Write(playersData, 0, playersData.Length);
+                    playerStream.Write(playerPacket, 0, playerPacket.Length);
                 }
+                // Write player data to the main packet
+                byte[] playersData = playerStream.ToArray();
+                if (memoryStream.Length + playersData.Length > 1024)
+                {
+                    Debug.LogWarning("Player data exceeds packet size.");
+                    return null;
+                }
+                memoryStream.Write(playersData, 0, playersData.Length);
+               
 
                 // PROJECTILES ENVIAR SOLO LA PRIMERA VEZ QUE SE RECIBEN
+                MemoryStream projectilesStream = new MemoryStream();
+                
+                foreach (KeyValuePair<int, Projectile> pr in NetworkManager.Instance.nm_ProjectilesToSend)
+                {
+                    var lastProjectileState = new ProjectilePacket();
 
+                    byte[] projectilePacket = pr.Value.Packet.Serialize(lastProjectileState);
+                    if (memoryStream.Length + projectilesStream.Length + projectilePacket.Length > 1024)
+                    {
+                        Debug.LogWarning($"Skipping projectile {pr.Key} due to packet size limit.");
+                        break;
+                    }
+                    projectilesStream.Write(projectilePacket, 0, projectilePacket.Length);
+                }
+                NetworkManager.Instance.nm_ProjectilesToSend.Clear();
+                // Write projectile data to the main packet
+                byte[] projectilesData = projectilesStream.ToArray();
+                if (memoryStream.Length + projectilesData.Length > 1024)
+                {
+                    Debug.LogWarning("Projectiles data exceeds packet size.");
+                    return null;
+                }
+                memoryStream.Write(projectilesData, 0, projectilesData.Length);
+             
                 // Add Header
                 memoryStream.Position = 0;
                 byte[] matchStateSize = BitConverter.GetBytes(matchStateData.Length);
-                byte[] playerStatesSize = BitConverter.GetBytes((int)(memoryStream.Length - headerSize));
+                byte[] playerStatesSize = BitConverter.GetBytes(playersData.Length);
+                byte[] projectilesStatesSize = BitConverter.GetBytes(projectilesData.Length);
                 memoryStream.Write(matchStateSize, 0, matchStateSize.Length);
                 memoryStream.Write(playerStatesSize, 0, playerStatesSize.Length);
+                memoryStream.Write(projectilesStatesSize, 0, projectilesStatesSize.Length);
 
                 // Finalize the packet
                 hostPacket = memoryStream.ToArray();
@@ -206,31 +231,93 @@ namespace HyperStrike
             }
         }
 
-        void HandlePlayerData(int user, byte[] receivedData, EndPoint Remote)
+        private PlayerDataPacket HandlePacket(byte[] receivedData)
         {
-            // Process game state data here
-            var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(user) ? NetworkManager.Instance.nm_LastPlayerStates[user] : new PlayerDataPacket();
+            // Separate the data into sections
+            (byte[] playerData, byte[] projectileData) = SeparateDataSections(receivedData);
 
-            //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
-            //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
+            // Handle player data
+            PlayerDataPacket playerDataPacket = HandlePlayerData(playerData);
 
-            // Extract player-specific data
-            PlayerDataPacket playerPacket = new PlayerDataPacket();
-            playerPacket.Deserialize(receivedData, lastState);
+            // Handle projectile data
+            HandleProjectileData(projectileData);
 
-            var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(user) ? NetworkManager.Instance.nm_ActivePlayers[user] : null;
-
-            if (player != null)
-            {
-                player.Packet = playerPacket;
-                player.updateGO = true;
-                lastState = playerPacket;
-            }   
-            else
-            {
-                Debug.Log("Player Not Found");
-            }
+            return playerDataPacket;
         }
+
+        private (byte[], byte[]) SeparateDataSections(byte[] data)
+        {
+            int headerSize = 8;
+
+            int playerSectionSize = BitConverter.ToInt32(data, 0); // Next 4 bytes define the player data length
+            int playerSectionStart = headerSize;
+
+            int projectileSectionSize = BitConverter.ToInt32(data, 4); // Next 4 bytes define the projectile data length
+            int projectileSectionStart = playerSectionStart + playerSectionSize;
+
+            byte[] playerData = data.Skip(playerSectionStart).Take(playerSectionSize).ToArray();
+            byte[] projectileData = data.Skip(projectileSectionStart).ToArray();
+
+            return (playerData, projectileData);
+        }
+
+        PlayerDataPacket HandlePlayerData(byte[] playerData)
+        {
+            if (playerData.Length > 0)
+            {
+                int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
+
+                // Process game state data here
+                var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : new PlayerDataPacket();
+
+                //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
+                //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
+
+                // Extract player-specific data
+                PlayerDataPacket playerPacket = new PlayerDataPacket();
+                playerPacket.Deserialize(playerData, lastState);
+
+                var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(playerId) ? NetworkManager.Instance.nm_ActivePlayers[playerId] : null;
+                Debug.Log($"ESTE JUGADOR HA ENVIADO PACK {playerPacket.PlayerName}");
+                if (player != null)
+                {
+                    player.Packet = playerPacket;
+                    player.updateGO = true;
+                    lastState = playerPacket;
+                }
+                else
+                {
+                    Debug.Log("Player Not Found");
+                }
+                return playerPacket;
+            }
+            return null;
+        }
+        
+        void HandleProjectileData(byte[] projectileData)
+        {
+            while (projectileData.Length > 0)
+            {
+                int projectileId = BitConverter.ToInt32(projectileData, 1);
+                var lastState = new ProjectilePacket();
+
+                ProjectilePacket projectile = new ProjectilePacket();
+                projectile.Deserialize(projectileData, lastState);
+                if (projectileId != 0 && projectileId != -1)
+                {
+                    MainThreadInvoker.Invoke(() =>
+                    {
+                        Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
+                        Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
+                        NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
+                        NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
+                    });
+                }
+                projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId);
+            }
+            Debug.Log("Projectile data processed.");
+        }
+
         public int GetUserByEndPoint(EndPoint endPoint)
         {
             return server_ConnectedUsers.ContainsKey(endPoint) ? server_ConnectedUsers[endPoint] : -1;

@@ -6,7 +6,6 @@ public class Rocket : Projectile
     float force = 30f;
     float explosionForce = 800f;
     float radius = 20f;
-    //[SerializeField] GameObject shooter;
     //[SerializeField] GameObject explosionFX;
     [SerializeField] Rigidbody body;
 
@@ -20,29 +19,6 @@ public class Rocket : Projectile
         Move();
 
         // ADD IENUM TO DESTROY ROCKET AFTER A PERIOD OF TIME
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (updateGO)
-        {
-            UpdateGameObjectData();
-            updateGO = false;
-        }
-        UpdateRocketData();
-    }
-
-    void UpdateRocketData()
-    {
-        Packet.Position[0] = this.gameObject.transform.position.x;
-        Packet.Position[1] = this.gameObject.transform.position.y;
-        Packet.Position[2] = this.gameObject.transform.position.z;
-    }
-
-    void UpdateGameObjectData()
-    {
-        this.gameObject.transform.position = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
     }
 
     private void OnCollisionEnter(Collision other)

@@ -1,8 +1,8 @@
 using System;
 
-public class PlayerIDGenerator
+public class IDGenerator
 {
-    public static int GeneratePlayerID()
+    public static int GenerateID()
     {
         Guid guid = Guid.NewGuid();
         int hashCode = guid.GetHashCode();

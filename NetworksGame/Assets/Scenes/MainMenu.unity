@@ -4669,6 +4669,12 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 634925363724041892, guid: 4a1acb06b6693dc458bf39d9ec350e0d,
         type: 3}
+    - target: {fileID: 8475017267443820528, guid: 91bd362e449bba042aa6b7ed71130d08,
+        type: 3}
+      propertyPath: rocketInstancePrefab
+      value: 
+      objectReference: {fileID: 2683894209613125051, guid: 35ac5d67c1bb8054eb56eb0247054f2d,
+        type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

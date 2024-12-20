@@ -29,7 +29,7 @@ namespace HyperStrike
         {
             if (lastState is not MatchStatePacket lastMatchState)
             {
-                throw new ArgumentException("Invalid packet type for delta serialization not ProjectileState");
+                throw new ArgumentException("Invalid packet type for delta serialization not MatchState");
             }
 
             using (MemoryStream ms = new MemoryStream())
@@ -51,7 +51,7 @@ namespace HyperStrike
         {
             if (lastState is not MatchStatePacket lastMatchState)
             {
-                throw new ArgumentException("Invalid packet type for delta serialization not ProjectileState");
+                throw new ArgumentException("Invalid packet type for delta serialization not MatchState");
             }
 
             using (MemoryStream ms = new MemoryStream(data))

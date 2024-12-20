@@ -12,10 +12,8 @@ namespace HyperStrike
         DEAD
     }
 
-    // BY NOW 74 BYTES?
     public class PlayerDataPacket : Packet
     {
-        // 1 + 40 = 41
         public string PlayerName = "Unknown"; // Make Max 12
         public int PlayerId = -1; // 4
         public float[] Position = new float[3]; // 12
