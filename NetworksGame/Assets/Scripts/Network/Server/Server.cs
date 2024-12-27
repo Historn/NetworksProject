@@ -299,33 +299,35 @@ namespace HyperStrike
         
         void HandleProjectileData(byte[] projectileData)
         {
+            bool iterate = true;
             Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
-            while (projectileData.Length > 0)
+            while (projectileData.Length > 0 && iterate)
             {
                 int projectileId = BitConverter.ToInt32(projectileData, 1);
                 var lastState = new ProjectilePacket();
 
                 ProjectilePacket projectile = new ProjectilePacket();
                 projectile.Deserialize(projectileData, lastState);
-                Debug.Log($"PROJECTILE id: {projectile.ProjectileId}");
-                if (projectile.ProjectileId != 0 && projectile.ProjectileId != -1 
-                    && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId) 
-                    && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
+
+                MainThreadInvoker.Invoke(() =>
                 {
-                    MainThreadInvoker.Invoke(() =>
+                    // Check if it wasnt created by this player
+                    if (projectile.ProjectileId != 0 && projectile.ProjectileId != -1
+                        && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)
+                        && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
                     {
                         Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
                         Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
                         if (!NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId)) NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
-                        if(!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
-                    });
-                }
-                else
-                {
-                    break;
-                }
+                        if (!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
+                    }
+                    else
+                    {
+                        iterate = false;
+                    }
+                });
+
                 projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId); 
-                Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
             }
             Debug.Log("Projectile data processed.");
         }
