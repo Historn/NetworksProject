@@ -187,7 +187,7 @@ public class PlayerMovement : MonoBehaviour
         if (rocket != null) 
         {
             rocket.SetPacket(IDGenerator.GenerateID(), gameObject.GetComponent<Player>().Packet.PlayerId, rocketGO.transform.position, rocketGO.transform.localRotation);
-            NetworkManager.Instance.nm_ProjectilesToSend.Add(rocket.Packet.ProjectileId, rocket);
+            NetworkManager.Instance?.nm_ProjectilesToSend.Add(rocket.Packet.ProjectileId, rocket);
         }
     }
 

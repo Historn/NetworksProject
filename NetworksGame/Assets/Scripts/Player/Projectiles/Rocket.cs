@@ -5,7 +5,7 @@ using UnityEngine;
 public class Rocket : Projectile
 {
     float force = 30f;
-    float explosionForce = 800f;
+    float explosionForce = 25f;
     float radius = 20f;
     //[SerializeField] GameObject explosionFX;
     [SerializeField] Rigidbody body;
@@ -54,8 +54,9 @@ public class Rocket : Projectile
             Rigidbody rb = collider.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                //Debug.Log("Body Found: " + rb.name);
-                rb.AddExplosionForce(explosionForce, transform.position, radius);
+                Vector3 dir = rb.position - transform.position;
+                
+                rb.AddForce(dir.normalized * explosionForce, ForceMode.Impulse);
             }
             ApplyDamage(collider.gameObject); // Put it inside Explode()
         }
