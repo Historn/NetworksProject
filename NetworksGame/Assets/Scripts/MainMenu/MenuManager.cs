@@ -40,7 +40,8 @@ public class MenuManager : MonoBehaviour
             "PitchScene", 
             async (args) =>
             {
-            string playerName = args[0] as string;
+            string playerIp = args[0] as string;
+            string playerName = args[1] as string;
             NetworkManager.Instance.gameObject.GetComponent<Server>().StartHost(playerName);
             }, 
             username.text));

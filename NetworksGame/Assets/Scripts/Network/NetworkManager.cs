@@ -82,7 +82,7 @@ namespace HyperStrike
             player.Packet = data;
             nm_ActivePlayers.Add(data.PlayerId, player);
             nm_LastPlayerStates.Add(data.PlayerId, player.Packet);
-            Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
+            //Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
         }
         
         public Projectile InstatiateProjectile(ProjectilePacket data)

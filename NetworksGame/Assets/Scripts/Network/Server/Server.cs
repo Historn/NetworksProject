@@ -42,7 +42,6 @@ namespace HyperStrike
             try
             {
                 NetworkManager.Instance.nm_Socket.SendTo(packetToSend, Remote);
-                Debug.Log("PACKET SENT");
                 Thread.Sleep(10); // Delay of 10ms between packets
             }
             catch (SocketException ex)
@@ -74,14 +73,11 @@ namespace HyperStrike
 
                 if (newUser == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
-                    Debug.Log("CREATING NEW USER");
-
                     // READ DATA FROM NEW CLIENT
                     PlayerDataPacket playerDataPacket = HandlePacket(data);
 
                     if (playerDataPacket == null) continue;
 
-                    Debug.Log($"DATA PACKET RECEIVED: {playerDataPacket.PlayerName} + {playerDataPacket.PlayerId} + {playerDataPacket.Position[0]} + {playerDataPacket.Position[1]} + {playerDataPacket.Position[2]}");
                     server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
 
                     // Send all data to NEW CLIENT
@@ -131,12 +127,10 @@ namespace HyperStrike
                 int headerSize = 12; // 4 bytes for match state size, 4 bytes for player states size, 4 for projectiles
                 memoryStream.Position = headerSize;
 
-                Debug.Log("Creating Match State Packet");
 
                 byte[] matchStateData = NetworkManager.Instance.nm_Match.Packet.Serialize(NetworkManager.Instance.nm_LastMatchState);
                 memoryStream.Write(matchStateData, 0, matchStateData.Length);
                 
-                Debug.Log("Creating Players State Packet");
                 MemoryStream playerStream = new MemoryStream();
              
                 foreach (KeyValuePair<int, Player> p in NetworkManager.Instance.nm_ActivePlayers)
@@ -202,7 +196,7 @@ namespace HyperStrike
 
                 // Finalize the packet
                 hostPacket = memoryStream.ToArray();
-                Debug.Log($"Finished Packet. Total Size: {hostPacket.Length} bytes.");
+                //Debug.Log($"Finished Packet. Total Size: {hostPacket.Length} bytes.");
                 return hostPacket;
             }
         }
@@ -237,7 +231,6 @@ namespace HyperStrike
             // Handle player data
             PlayerDataPacket playerDataPacket = HandlePlayerData(playerData);
 
-            Debug.Log("Now we will process projectiles");
             // Handle projectile data
             HandleProjectileData(projectileData);
 
@@ -275,7 +268,7 @@ namespace HyperStrike
             playerPacket.Deserialize(playerData, lastState);
 
             var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(playerId) ? NetworkManager.Instance.nm_ActivePlayers[playerId] : null;
-            Debug.Log($"ESTE JUGADOR HA ENVIADO PACK {playerPacket.PlayerName}");
+
             if (player != null)
             {
                 player.Packet = playerPacket;
@@ -284,7 +277,7 @@ namespace HyperStrike
             }
             else
             {
-                Debug.Log("Player Not Found");
+
                 MainThreadInvoker.Invoke(() =>
                 {
                     NetworkManager.Instance.InstatiateGO(playerPacket);
@@ -293,14 +286,14 @@ namespace HyperStrike
                     NetworkManager.Instance.nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
                 });
             }
-            Debug.Log("Player Data processed");
+
             return playerPacket;
         }
         
         void HandleProjectileData(byte[] projectileData)
         {
             bool iterate = true;
-            Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
+            //Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
             while (projectileData.Length > 0 && iterate)
             {
                 int projectileId = BitConverter.ToInt32(projectileData, 1);
@@ -329,7 +322,6 @@ namespace HyperStrike
 
                 projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId); 
             }
-            Debug.Log("Projectile data processed.");
         }
 
         public int GetUserByEndPoint(EndPoint endPoint)
