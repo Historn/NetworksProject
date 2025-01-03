@@ -11,6 +11,7 @@ namespace HyperStrike
 {
     public class Server : MonoBehaviour
     {
+        TimeoutManager timeoutManager = new TimeoutManager();
         Dictionary<EndPoint, int> server_ConnectedUsers = new Dictionary<EndPoint, int>();
 
         #region CONNECTION
@@ -42,11 +43,13 @@ namespace HyperStrike
             try
             {
                 NetworkManager.Instance.nm_Socket.SendTo(packetToSend, Remote);
+                Debug.Log($"Sent Packeteee");
                 Thread.Sleep(10); // Delay of 10ms between packets
             }
             catch (SocketException ex)
             {
                 Debug.Log($"Send host error: {ex.Message}");
+                Debug.Log($"Wrong Remote: {Remote}");
             }
         }
 
@@ -85,13 +88,13 @@ namespace HyperStrike
                     packetToSend = CreatePacketToSend();
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packetToSend));
                     serverAnswer.Start();
-
+                    Debug.Log($"Sent Initial Info to New Player");
                     MainThreadInvoker.Invoke(() =>
                     {
                         packetToSend = new byte[1024];
                         packetToSend = CreatePacketToSend();
-
-                        if (server_ConnectedUsers.Count > 1)
+                        Debug.Log($"Sent Initial Info to Other");
+                        if (server_ConnectedUsers.Count > 2)
                         {
                             foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
                             {
@@ -215,8 +218,9 @@ namespace HyperStrike
                 // SEND PACKETS
                 Thread answer = new Thread(() =>
                 {
+                    Debug.Log($"SENDING KAKAKKA");
                     SendHost(u.Key, packetToSend);
-                    Thread.Sleep(10); // Delay of 10ms between packets
+                    //Thread.Sleep(10); // Delay of 10ms between packets
                 });
 
                 answer.Start();
@@ -260,9 +264,6 @@ namespace HyperStrike
             // Process game state data here
             var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : new PlayerDataPacket();
 
-            //int playerSectionLength = BitConverter.ToInt32(receivedData, 0); // First 4 bytes define the length
-            //byte[] playerData = receivedData.Skip(4).Take(playerSectionLength).ToArray();
-
             // Extract player-specific data
             PlayerDataPacket playerPacket = new PlayerDataPacket();
             playerPacket.Deserialize(playerData, lastState);
@@ -282,7 +283,6 @@ namespace HyperStrike
                 {
                     NetworkManager.Instance.InstatiateGO(playerPacket);
 
-                    // ALL THIS NEEDS TO BE IN THE SAME THREAD AS InstantiateGO
                     NetworkManager.Instance.nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
                 });
             }
@@ -293,7 +293,7 @@ namespace HyperStrike
         void HandleProjectileData(byte[] projectileData)
         {
             bool iterate = true;
-            //Debug.Log($"PROJECTILES PACKET LENGTH: {projectileData.Length}");
+
             while (projectileData.Length > 0 && iterate)
             {
                 int projectileId = BitConverter.ToInt32(projectileData, 1);
@@ -309,7 +309,6 @@ namespace HyperStrike
                         && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)
                         && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
                     {
-                        Debug.Log($"\nInstantiating NEW PROJECTILE: {projectile.ProjectileId}.");
                         Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
                         if (!NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId)) NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
                         if (!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);

@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using HyperStrike;
-using UnityEngine.SceneManagement;
+using System;
 
 public class MenuManager : MonoBehaviour
 {
@@ -12,6 +10,10 @@ public class MenuManager : MonoBehaviour
     [SerializeField] GameObject hostMenu;
 
     [SerializeField] GameObject joinMenu;
+
+    public TMP_InputField usernameHost;
+    public TMP_InputField usernameClient;
+    public TMP_InputField hostIp;
 
     public void OpenHostGameMenu()
     {
@@ -32,39 +34,53 @@ public class MenuManager : MonoBehaviour
         initMenu.SetActive(true);
     }
 
-    public void CreateGame(TMP_InputField username)
+    public void CreateGame()
     {
+        if (usernameHost is null)
+        {
+            throw new ArgumentNullException(nameof(usernameHost));
+        }
+
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
+
+        NetworkManager.Instance.gameObject.GetComponent<Client>().enabled = false;
 
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
             "PitchScene", 
             async (args) =>
             {
-            string playerIp = args[0] as string;
-            string playerName = args[1] as string;
+            string playerName = args[0] as string;
             NetworkManager.Instance.gameObject.GetComponent<Server>().StartHost(playerName);
-            }, 
-            username.text));
-
-        NetworkManager.Instance.gameObject.GetComponent<Client>().enabled = false;
-        //Debug.Log("Debug: Creating Game " + username.text);
+            },
+            usernameHost.text));
     }
     
-    public void JoinGame(TMP_InputField username)
+    public void JoinGame()
     {
+        if (usernameClient is null)
+        {
+            throw new ArgumentNullException(nameof(usernameClient));
+        }
+
+        if (hostIp is null)
+        {
+            throw new ArgumentNullException(nameof(hostIp));
+        }
+
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
+
+        NetworkManager.Instance.gameObject.GetComponent<Server>().enabled = false;
 
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
             "PitchScene",
             async (args) =>
             {
                 string playerName = args[0] as string;
-                NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(playerName);
+                string Ip = args[1] as string;
+                NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(playerName, Ip);
             },
-            username.text));
-
-        NetworkManager.Instance.gameObject.GetComponent<Server>().enabled = false;
-        //Debug.Log("Debug: Joining Game "+username.text);
+            usernameClient.text,
+            hostIp.text));
     }
 
     public void Quit()

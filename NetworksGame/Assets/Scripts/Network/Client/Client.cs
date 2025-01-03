@@ -16,12 +16,12 @@ namespace HyperStrike
         private bool isSendingPackets = false; // Track if the coroutine is running
         Thread receive;
 
-        public void StartClient(string username)
+        public void StartClient(string username, string hostIp)
         {
             try
             {
                 // IP EndPoint Default to Local: "127.0.0.1" Port: 9050
-                IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
+                IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(hostIp), 9050);
 
                 // Detect if the user is not waiting and in the Menu (or Finished Match?)
                 if (!NetworkManager.Instance.nm_Connected)
@@ -114,7 +114,7 @@ namespace HyperStrike
             }
 
             NetworkManager.Instance.nm_Socket.SendTo(clientPacket, NetworkManager.Instance.nm_ServerEndPoint);
-            //Debug.Log("Client Packet Sent");
+            Debug.Log("Client Packet Sent");
         }
 
         private IEnumerator SendPacketsWithDelay()
@@ -281,7 +281,11 @@ namespace HyperStrike
 
         private void OnApplicationQuit()
         {
-            receive.Abort();
+            if (receive != null && receive.IsAlive)
+            {
+                receive.Interrupt();
+                receive.Join();
+            }
         }
     }
 
