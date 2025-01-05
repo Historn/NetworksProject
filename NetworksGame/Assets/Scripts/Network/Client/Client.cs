@@ -16,7 +16,7 @@ namespace HyperStrike
         private bool isSendingPackets = false; // Track if the coroutine is running
         Thread receive;
 
-        public void StartClient(string username, string hostIp)
+        public void StartClient(string username, string hostIp = "127.0.0.1")
         {
             try
             {
@@ -55,13 +55,10 @@ namespace HyperStrike
 
         private void SendClientPacket()
         {
-            //Debug.Log("Client Creating Packet to Send");
-
             byte[] clientPacket = new byte[1024];
 
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                // Add a header for metadata 
                 int headerSize = 8; // 4 bytes for player state size change to 8 for +Projectiles
                 memoryStream.Position = headerSize;
 

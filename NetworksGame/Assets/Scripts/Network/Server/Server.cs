@@ -14,6 +14,12 @@ namespace HyperStrike
         TimeoutManager timeoutManager = new TimeoutManager();
         Dictionary<EndPoint, int> server_ConnectedUsers = new Dictionary<EndPoint, int>();
 
+        void Update()
+        {
+            if (NetworkManager.Instance.nm_Connected)
+                CheckForTimeouts();
+        }
+
         #region CONNECTION
         public void StartHost(string username)
         {
@@ -33,8 +39,29 @@ namespace HyperStrike
 
             NetworkManager.Instance.nm_Match = GameObject.Find("MatchManager").GetComponent<Match>();
 
+            NetworkManager.Instance.nm_Connected = true;
+
             Thread mainThread = new Thread(ReceiveHost);
             mainThread.Start();
+        }
+
+        // Periodically check for timeouts
+        void CheckForTimeouts()
+        {
+            List<int> timedOutPlayers = timeoutManager.CheckTimeouts();
+            foreach (int playerId in timedOutPlayers)
+            {
+                // Remove the player from connected users and notify others
+                EndPoint playerEndpoint = server_ConnectedUsers.First(kvp => kvp.Value == playerId).Key;
+                server_ConnectedUsers.Remove(playerEndpoint);
+
+                GameObject timedOutPlayer = NetworkManager.Instance.nm_ActivePlayers[playerId].gameObject;
+
+                NetworkManager.Instance.nm_StatusText += $"Player {timedOutPlayer.name} timed out and was removed from the game.";
+
+                Destroy(timedOutPlayer);
+                NetworkManager.Instance.nm_ActivePlayers.Remove(playerId);
+            }
         }
         #endregion
 
@@ -43,13 +70,11 @@ namespace HyperStrike
             try
             {
                 NetworkManager.Instance.nm_Socket.SendTo(packetToSend, Remote);
-                Debug.Log($"Sent Packeteee");
                 Thread.Sleep(10); // Delay of 10ms between packets
             }
             catch (SocketException ex)
             {
                 Debug.Log($"Send host error: {ex.Message}");
-                Debug.Log($"Wrong Remote: {Remote}");
             }
         }
 
@@ -69,12 +94,14 @@ namespace HyperStrike
                 recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
                 NetworkManager.Instance.nm_StatusText = $"\nServer received a packet of {recv} bytes";
 
-                int newUser = -1;
+                int playerId = GetUserByEndPoint(Remote);
 
-                if (server_ConnectedUsers.ContainsKey(Remote))
-                    newUser = server_ConnectedUsers[Remote];
+                if (playerId != -1)
+                {
+                    timeoutManager.UpdateActivity(playerId);
+                }
 
-                if (newUser == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
+                if (playerId == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
                     // READ DATA FROM NEW CLIENT
                     PlayerDataPacket playerDataPacket = HandlePacket(data);
@@ -98,7 +125,7 @@ namespace HyperStrike
                         {
                             foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
                             {
-                                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && newUser == user.Value)
+                                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && playerId == user.Value)
                                     continue;
 
                                 Thread answer = new Thread(() => SendHost(user.Key, packetToSend));

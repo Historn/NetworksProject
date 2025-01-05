@@ -6,7 +6,7 @@ namespace HyperStrike
     public class TimeoutManager
     {
         private Dictionary<int, float> playerLastActivity = new Dictionary<int, float>();
-        private float timeoutThreshold = 10f; // Timeout after 10 seconds of inactivity
+        private float timeoutThreshold = 5f; // Timeout after 10 seconds of inactivity
 
         public void UpdateActivity(int playerId)
         {

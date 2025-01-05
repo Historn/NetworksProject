@@ -56,10 +56,11 @@ public class PlayerMovement : MonoBehaviour
 
 
     [Header("Attacks")]
+    public GameObject rocketSpawnOffset;
     public GameObject rocketPrefab;
-    float attackCooldown = 0.5f;
+    float attackCooldown = 1f;
     bool attackReady = true;
-    public float attackOffset = 5f; // Forward offset for the rocket spawn
+    float attackOffset = 0.2f; // Forward offset for the rocket spawn
 
     void Start()
     {
@@ -182,7 +183,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Attack()
     {
-        GameObject rocketGO = Instantiate(rocketPrefab, transform.position + playerCam.transform.forward * attackOffset, playerCam.transform.rotation);
+        if (rocketSpawnOffset == null || rocketPrefab == null) { return; }
+        GameObject rocketGO = Instantiate(rocketPrefab, rocketSpawnOffset.transform.position + playerCam.transform.forward * attackOffset, playerCam.transform.rotation);
         Projectile rocket = rocketGO.GetComponent<Projectile>();
         if (rocket != null) 
         {
