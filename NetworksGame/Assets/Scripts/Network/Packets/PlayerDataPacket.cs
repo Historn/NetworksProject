@@ -43,12 +43,22 @@ namespace HyperStrike
             using (BinaryWriter writer = new BinaryWriter(ms))
             {
                 writer.Write((byte)Type);
+
+                // Placeholder for Size, will update later
+                long sizePosition = ms.Position;
+                writer.Write(0); // Temporary Size value
+
                 writer.Write(PlayerId);
                 writer.Write(PlayerName);
 
                 // Compare with the last state
                 WriteDelta(writer, lastPlayerData?.Position, Position);
                 WriteDelta(writer, lastPlayerData?.Rotation, Rotation);
+
+                // Update Size
+                Size = (int)ms.Length;
+                ms.Seek(sizePosition, SeekOrigin.Begin);
+                writer.Write(Size);
 
                 return ms.ToArray();
             }
@@ -65,6 +75,7 @@ namespace HyperStrike
             using (BinaryReader reader = new BinaryReader(ms))
             {
                 Type = (PacketType)reader.ReadByte();
+                Size = reader.ReadInt32();
                 PlayerId = reader.ReadInt32();
                 PlayerName = reader.ReadString();
 

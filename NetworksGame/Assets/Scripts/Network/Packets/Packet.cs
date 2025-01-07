@@ -22,6 +22,7 @@ namespace HyperStrike
         //public ushort SequenceNumber; // Add for reliability
 
         public PacketType Type { get; protected set; }
+        public int Size { get; protected set; }
 
         public abstract byte[] Serialize(ISerializable lastStatePacket);
         public abstract void Deserialize(byte[] data, ISerializable lastStatePacket);

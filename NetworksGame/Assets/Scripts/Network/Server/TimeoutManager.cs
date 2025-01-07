@@ -6,14 +6,17 @@ namespace HyperStrike
     public class TimeoutManager
     {
         private Dictionary<int, float> playerLastActivity = new Dictionary<int, float>();
-        private float timeoutThreshold = 5f; // Timeout after 10 seconds of inactivity
+        private float timeoutThreshold = 5f; // Timeout after 5 seconds of inactivity
 
         public void UpdateActivity(int playerId)
         {
-            if (playerLastActivity.ContainsKey(playerId))
-                playerLastActivity[playerId] = Time.time;
-            else
-                playerLastActivity.Add(playerId, Time.time);
+            MainThreadInvoker.Invoke(() =>
+            {
+                if (playerLastActivity.ContainsKey(playerId))
+                    playerLastActivity[playerId] = Time.time;
+                else
+                    playerLastActivity.Add(playerId, Time.time);
+            });
         }
 
         public List<int> CheckTimeouts()

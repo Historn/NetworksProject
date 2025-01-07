@@ -12,7 +12,10 @@ namespace HyperStrike
     public class Server : MonoBehaviour
     {
         TimeoutManager timeoutManager = new TimeoutManager();
+        PredictionManager predictionManager = new PredictionManager();
         Dictionary<EndPoint, int> server_ConnectedUsers = new Dictionary<EndPoint, int>();
+
+        Thread receive;
 
         void Update()
         {
@@ -41,8 +44,8 @@ namespace HyperStrike
 
             NetworkManager.Instance.nm_Connected = true;
 
-            Thread mainThread = new Thread(ReceiveHost);
-            mainThread.Start();
+            receive = new Thread(ReceiveHost);
+            receive.Start();
         }
 
         // Periodically check for timeouts
@@ -92,7 +95,7 @@ namespace HyperStrike
             {
                 data = new byte[1024];
                 recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
-                NetworkManager.Instance.nm_StatusText = $"\nServer received a packet of {recv} bytes";
+                Debug.Log($"\nServer received a packet of {recv} bytes");
 
                 int playerId = GetUserByEndPoint(Remote);
 
@@ -103,11 +106,12 @@ namespace HyperStrike
 
                 if (playerId == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
+                    Debug.Log($"Cretaing Client");
                     // READ DATA FROM NEW CLIENT
-                    PlayerDataPacket playerDataPacket = HandlePacket(data);
-
+                    NetworkManager.Instance.HandlePacket(data, out PlayerDataPacket playerDataPacket);
+                    Debug.Log($"New Client packet handled");
                     if (playerDataPacket == null) continue;
-
+                    Debug.Log($"New Player: {playerDataPacket.PlayerName}");
                     server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
 
                     // Send all data to NEW CLIENT
@@ -115,12 +119,12 @@ namespace HyperStrike
                     packetToSend = CreatePacketToSend();
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packetToSend));
                     serverAnswer.Start();
-                    Debug.Log($"Sent Initial Info to New Player");
+
                     MainThreadInvoker.Invoke(() =>
                     {
                         packetToSend = new byte[1024];
                         packetToSend = CreatePacketToSend();
-                        Debug.Log($"Sent Initial Info to Other");
+
                         if (server_ConnectedUsers.Count > 2)
                         {
                             foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
@@ -137,9 +141,9 @@ namespace HyperStrike
                 else
                 {
                     if(recv > 0)
-                        HandlePacket(data);
+                        NetworkManager.Instance.HandlePacket(data, out _);
 
-                    SendPacket(Remote);
+                    SendPacket();
                 }
             }
         }
@@ -152,12 +156,7 @@ namespace HyperStrike
             byte[] hostPacket = new byte[1024];
 
             using (MemoryStream memoryStream = new MemoryStream())
-            {
-                // Add a header for metadata 
-                int headerSize = 12; // 4 bytes for match state size, 4 bytes for player states size, 4 for projectiles
-                memoryStream.Position = headerSize;
-
-
+            {                                                                                                                                                                                                                                                                                                                                                                                                           
                 byte[] matchStateData = NetworkManager.Instance.nm_Match.Packet.Serialize(NetworkManager.Instance.nm_LastMatchState);
                 memoryStream.Write(matchStateData, 0, matchStateData.Length);
                 
@@ -214,24 +213,14 @@ namespace HyperStrike
                     return null;
                 }
                 memoryStream.Write(projectilesData, 0, projectilesData.Length);
-             
-                // Add Header
-                memoryStream.Position = 0;
-                byte[] matchStateSize = BitConverter.GetBytes(matchStateData.Length);
-                byte[] playerStatesSize = BitConverter.GetBytes(playersData.Length);
-                byte[] projectilesStatesSize = BitConverter.GetBytes(projectilesData.Length);
-                memoryStream.Write(matchStateSize, 0, matchStateSize.Length);
-                memoryStream.Write(playerStatesSize, 0, playerStatesSize.Length);
-                memoryStream.Write(projectilesStatesSize, 0, projectilesStatesSize.Length);
 
                 // Finalize the packet
                 hostPacket = memoryStream.ToArray();
-                //Debug.Log($"Finished Packet. Total Size: {hostPacket.Length} bytes.");
                 return hostPacket;
             }
         }
 
-        void SendPacket(EndPoint Remote)
+        void SendPacket()
         {
             // Broadcast the updated player position to all clients
             byte[] packetToSend = new byte[1024];
@@ -245,108 +234,10 @@ namespace HyperStrike
                 // SEND PACKETS
                 Thread answer = new Thread(() =>
                 {
-                    Debug.Log($"SENDING KAKAKKA");
                     SendHost(u.Key, packetToSend);
-                    //Thread.Sleep(10); // Delay of 10ms between packets
                 });
 
                 answer.Start();
-            }
-        }
-
-        private PlayerDataPacket HandlePacket(byte[] receivedData)
-        {
-            // Separate the data into sections
-            (byte[] playerData, byte[] projectileData) = SeparateDataSections(receivedData);
-
-            // Handle player data
-            PlayerDataPacket playerDataPacket = HandlePlayerData(playerData);
-
-            // Handle projectile data
-            HandleProjectileData(projectileData);
-
-            return playerDataPacket;
-        }
-
-        private (byte[], byte[]) SeparateDataSections(byte[] data)
-        {
-            int headerSize = 8;
-
-            int playerSectionSize = BitConverter.ToInt32(data, 0); // Next 4 bytes define the player data length
-            int playerSectionStart = headerSize;
-
-            int projectileSectionSize = BitConverter.ToInt32(data, 4); // Next 4 bytes define the projectile data length
-            int projectileSectionStart = playerSectionStart + playerSectionSize;
-
-            byte[] playerData = data.Skip(playerSectionStart).Take(playerSectionSize).ToArray();
-            byte[] projectileData = data.Skip(projectileSectionStart).ToArray();
-
-            return (playerData, projectileData);
-        }
-
-        PlayerDataPacket HandlePlayerData(byte[] playerData)
-        {
-            int playerId = BitConverter.ToInt32(playerData, 1); // 1 Byte Offset for the Type
-
-            // Process game state data here
-            var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(playerId) ? NetworkManager.Instance.nm_LastPlayerStates[playerId] : new PlayerDataPacket();
-
-            // Extract player-specific data
-            PlayerDataPacket playerPacket = new PlayerDataPacket();
-            playerPacket.Deserialize(playerData, lastState);
-
-            var player = NetworkManager.Instance.nm_ActivePlayers.ContainsKey(playerId) ? NetworkManager.Instance.nm_ActivePlayers[playerId] : null;
-
-            if (player != null)
-            {
-                player.Packet = playerPacket;
-                player.updateGO = true;
-                lastState = playerPacket;
-            }
-            else
-            {
-
-                MainThreadInvoker.Invoke(() =>
-                {
-                    NetworkManager.Instance.InstatiateGO(playerPacket);
-
-                    NetworkManager.Instance.nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
-                });
-            }
-
-            return playerPacket;
-        }
-        
-        void HandleProjectileData(byte[] projectileData)
-        {
-            bool iterate = true;
-
-            while (projectileData.Length > 0 && iterate)
-            {
-                int projectileId = BitConverter.ToInt32(projectileData, 1);
-                var lastState = new ProjectilePacket();
-
-                ProjectilePacket projectile = new ProjectilePacket();
-                projectile.Deserialize(projectileData, lastState);
-
-                MainThreadInvoker.Invoke(() =>
-                {
-                    // Check if it wasnt created by this player
-                    if (projectile.ProjectileId != 0 && projectile.ProjectileId != -1
-                        && !NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)
-                        && !NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId))
-                    {
-                        Projectile existingProjectile = NetworkManager.Instance.InstatiateProjectile(projectile);
-                        if (!NetworkManager.Instance.nm_ProjectilesToSend.ContainsKey(projectileId)) NetworkManager.Instance.nm_ProjectilesToSend.Add(projectileId, existingProjectile);
-                        if (!NetworkManager.Instance.nm_ActiveProjectiles.Contains(projectileId)) NetworkManager.Instance.nm_ActiveProjectiles.Add(projectileId);
-                    }
-                    else
-                    {
-                        iterate = false;
-                    }
-                });
-
-                projectileData = NetworkManager.Instance.TrimProcessedData(projectileData, projectileId); 
             }
         }
 
@@ -354,8 +245,15 @@ namespace HyperStrike
         {
             return server_ConnectedUsers.ContainsKey(endPoint) ? server_ConnectedUsers[endPoint] : -1;
         }
-        
         #endregion
+
+        private void OnApplicationQuit()
+        {
+            if (receive != null && receive.IsAlive)
+            {
+                receive.Interrupt();
+            }
+        }
     }
 }
 

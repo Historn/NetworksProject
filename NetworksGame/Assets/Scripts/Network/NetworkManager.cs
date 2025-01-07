@@ -5,6 +5,7 @@ using UnityEngine;
 using TMPro;
 using System.Linq;
 using System;
+using System.Threading;
 
 namespace HyperStrike
 {
@@ -12,6 +13,8 @@ namespace HyperStrike
     {
         public static NetworkManager Instance { get; private set; }
         void Awake() { if (Instance == null) Instance = this; }
+
+        PacketManager packetManager = new PacketManager();
 
         [HideInInspector]public Socket nm_Socket;
         [HideInInspector]public IPEndPoint nm_ServerEndPoint;
@@ -72,17 +75,15 @@ namespace HyperStrike
         }
         #endregion
 
-        #region REPLICATION
-
+        #region NetObjectControl
         public void InstatiateGO(PlayerDataPacket data)
         {
-            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(0, 0, 3), new Quaternion(0, 0, 0, 1));
+            GameObject goInstance = Instantiate(clientInstancePrefab, new Vector3(data.Position[0], data.Position[1], data.Position[2]), new Quaternion(0, 0, 0, 1));
             goInstance.name = data.PlayerName;
             Player player = goInstance.GetComponent<Player>();
             player.Packet = data;
             nm_ActivePlayers.Add(data.PlayerId, player);
             nm_LastPlayerStates.Add(data.PlayerId, player.Packet);
-            //Debug.Log($"GO CREATED: {data.PlayerName}, {data.PlayerId}");
         }
         
         public Projectile InstatiateProjectile(ProjectilePacket data)
@@ -90,7 +91,7 @@ namespace HyperStrike
             GameObject goInstance = Instantiate(rocketInstancePrefab, new Vector3(data.Position[0], data.Position[1], data.Position[2]), new Quaternion(data.Rotation[0], data.Rotation[1], data.Rotation[2], data.Rotation[3]));
             Projectile projectile = goInstance.GetComponent<Projectile>();
             projectile.Packet = data;
-            //Debug.Log($"PROJECTILE CREATED: {data.ProjectileId} from {data.ShooterId}");
+            nm_ActiveProjectiles.Add(data.ProjectileId);
             return projectile;
         }
 
@@ -99,36 +100,138 @@ namespace HyperStrike
             return nm_ActivePlayers.ContainsKey(id) ? nm_ActivePlayers[id] : null;
         }
         
-        public Projectile GetProjectileById(int id)
+        public bool GetProjectileById(int id)
         {
-            return nm_ProjectilesToSend.ContainsKey(id) ? nm_ProjectilesToSend[id] : null;
+            return nm_ActiveProjectiles.Contains(id) ? true : false;
         }
+        #endregion
 
-        public byte[] TrimProcessedData(byte[] data, int processedId)
+        #region PacketHandling
+        public void HandlePacket(byte[] receivedData, out PlayerDataPacket playerData)
         {
-            // Assuming fixed packet sizes or ability to determine processed packet length
-            int processedPacketLength = CalculatePacketLength(data, processedId); // Implement based on your format
-            return data.Skip(processedPacketLength).ToArray();
-        }
+            List<byte[]> packets = SeparateDataPackets(receivedData);
 
-        private int CalculatePacketLength(byte[] data, int processedId)
-        {
-            // Example logic for determining packet length based on the data structure
-            // Assuming the first 4 bytes after the ID represent the packet length
+            PacketType type = PacketType.NONE;
 
-            int idOffset = 4; // Offset where ID ends
-            int lengthOffset = idOffset; // Position where length is stored
+            playerData = null;
+            Debug.Log($"There are {packets.Count} different packets");
+            if (packets.Count < 1)
+                return;
 
-            if (data.Length < lengthOffset + 4)
+            foreach (byte[] packet in packets)
             {
-                throw new InvalidOperationException("Data is too short to determine packet length.");
+                type = (PacketType)BitConverter.ToInt32(packet, 0); // Mal
+                switch (type)
+                {
+                    case PacketType.NONE:
+                        break;
+                    case PacketType.GAME_STATE:
+                        break;
+                    case PacketType.MATCH:
+                        HandleMatchStateData(packet);
+                        break;
+                    case PacketType.PLAYER_DATA:
+                        playerData = HandlePlayerData(packet);
+                        break;
+                    case PacketType.ABILITY:
+                        break;
+                    case PacketType.PROJECTILE:
+                        HandleProjectileData(packet);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        private List<byte[]> SeparateDataPackets(byte[] data)
+        {
+            List<byte[]> packets = new List<byte[]>();
+            Debug.Log($"Data contains {data.Length} Bytes");
+            for (int nextPacket = 0; nextPacket < data.Length;)
+            {
+                PacketType packetType = (PacketType)data[nextPacket];
+                if (packetType == PacketType.NONE) break;
+
+                int packetSize = BitConverter.ToInt32(data, nextPacket + 1); // Take Size
+
+                byte[] packet = data.Skip(nextPacket).Take(packetSize).ToArray();
+                packets.Add(packet);
+
+                nextPacket += packetSize;
             }
 
-            // Extract the packet length (assuming 4-byte integer)
-            int packetLength = BitConverter.ToInt32(data, lengthOffset);
-            return packetLength;
+            return packets;
         }
 
+        private void HandleMatchStateData(byte[] matchStateData)
+        {
+            MatchStatePacket match = new MatchStatePacket();
+            match.Deserialize(matchStateData, nm_LastMatchState);
+
+            nm_Match.Packet = match;
+            nm_Match.updateGO = true;
+
+            nm_LastMatchState = match;
+        }
+
+        private PlayerDataPacket HandlePlayerData(byte[] playerData)
+        {
+            int playerId = BitConverter.ToInt32(playerData, 5); // 5 Byte Offset for the Type and Size
+
+            // Process game state data here
+            var lastState = nm_LastPlayerStates.ContainsKey(playerId) ? nm_LastPlayerStates[playerId] : new PlayerDataPacket();
+
+            // Extract player-specific data
+            PlayerDataPacket playerPacket = new PlayerDataPacket();
+            playerPacket.Deserialize(playerData, lastState);
+            
+            Debug.Log($"Player Client: {playerPacket.PlayerName}");
+
+            if(playerId == nm_PlayerData.PlayerId) return playerPacket;
+
+            MainThreadInvoker.Invoke(() =>
+            {
+                var player = GetPlayerById(playerId);
+                if (player != null)
+                {
+                    player.Packet = playerPacket;
+                    player.updateGO = true;
+                    lastState = playerPacket;
+                }
+                else
+                {
+                    InstatiateGO(playerPacket);
+                    nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
+                }
+            });
+            Debug.Log("Player data processed.");
+            return playerPacket;
+        }
+
+        private void HandleProjectileData(byte[] projectileData)
+        {
+            int projectileId = BitConverter.ToInt32(projectileData, 5); // 5 Byte Offset for the Type and Size
+
+            // Process game state data here
+            var lastState = new ProjectilePacket();
+
+            // Extract player-specific data
+            ProjectilePacket projectilePacket = new ProjectilePacket();
+            projectilePacket.Deserialize(projectileData, lastState);
+
+            var projectile = GetProjectileById(projectileId);
+
+            if (!projectile)
+            {
+                MainThreadInvoker.Invoke(() =>
+                {
+                    Projectile existingProjectile = InstatiateProjectile(projectilePacket);
+                    Debug.Log($"\nInstantiating NEW PROJECTILE: {projectilePacket.ProjectileId}.");
+                });
+            }
+            Debug.Log("Projectile data processed.");
+        }
         #endregion
     }
 }

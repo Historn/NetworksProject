@@ -37,11 +37,20 @@ namespace HyperStrike
             {
                 writer.Write((byte)Type);
 
+                // Placeholder for Size, will update later
+                long sizePosition = ms.Position;
+                writer.Write(0); // Temporary Size value
+
                 WriteDelta(writer, lastMatchState?.LocalGoals, LocalGoals);
                 WriteDelta(writer, lastMatchState?.VisitantGoals, VisitantGoals);
                 WriteDelta(writer, lastMatchState?.CurrentTime, CurrentTime);
                 WriteDelta(writer, lastMatchState?.BallPosition, BallPosition);
                 WriteDelta(writer, lastMatchState?.BallRotation, BallRotation);
+
+                // Update Size
+                Size = (int)ms.Length;
+                ms.Seek(sizePosition, SeekOrigin.Begin);
+                writer.Write(Size);
 
                 return ms.ToArray();
             }
@@ -58,6 +67,7 @@ namespace HyperStrike
             using (BinaryReader reader = new BinaryReader(ms))
             {
                 Type = (PacketType)reader.ReadByte();
+                Size = reader.ReadInt32();
                 LocalGoals = ReadDelta(reader, lastMatchState?.LocalGoals);
                 VisitantGoals = ReadDelta(reader, lastMatchState?.VisitantGoals);
                 CurrentTime = ReadDelta(reader, lastMatchState?.CurrentTime);

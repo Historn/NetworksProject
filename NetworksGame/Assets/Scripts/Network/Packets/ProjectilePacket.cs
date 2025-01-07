@@ -38,11 +38,20 @@ namespace HyperStrike
             {
                 writer.Write((byte)Type);
 
+                // Placeholder for Size, will update later
+                long sizePosition = ms.Position;
+                writer.Write(0); // Temporary Size value
+
                 writer.Write(ProjectileId);
                 writer.Write(ShooterId);
 
                 WriteDelta(writer, lastProjectileState?.Position, Position);
                 WriteDelta(writer, lastProjectileState?.Rotation, Rotation);
+
+                // Update Size
+                Size = (int)ms.Length;
+                ms.Seek(sizePosition, SeekOrigin.Begin);
+                writer.Write(Size);
 
                 return ms.ToArray();
             }
@@ -59,7 +68,7 @@ namespace HyperStrike
             using (BinaryReader reader = new BinaryReader(ms))
             {
                 Type = (PacketType)reader.ReadByte();
-
+                Size = reader.ReadInt32();
                 ProjectileId = reader.ReadInt32();
                 ShooterId = reader.ReadInt32();
 
