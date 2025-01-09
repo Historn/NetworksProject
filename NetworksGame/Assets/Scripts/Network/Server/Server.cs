@@ -24,14 +24,25 @@ namespace HyperStrike
         }
 
         #region CONNECTION
-        public void StartHost(string username)
+        public bool StartHost(string username)
         {
-            NetworkManager.Instance.nm_StatusText += "Creating Host Server...";
+            try
+            {
+                NetworkManager.Instance.nm_StatusText += "Creating Host Server...";
+                IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
+                NetworkManager.Instance.nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                NetworkManager.Instance.nm_Socket.Bind(ipep);
+                return true;
+            }
+            catch (SocketException ex)
+            {
+                NetworkManager.Instance.nm_StatusText += $"\nError creating server: {ex.Message}";
+                return false;
+            }
+        }
 
-            IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 9050);
-            NetworkManager.Instance.nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            NetworkManager.Instance.nm_Socket.Bind(ipep);
-            
+        public void SetHost(string username)
+        {
             int userID = IDGenerator.GenerateID();
 
             server_ConnectedUsers.Add(NetworkManager.Instance.nm_Socket.LocalEndPoint, userID);
@@ -66,6 +77,18 @@ namespace HyperStrike
                 NetworkManager.Instance.nm_ActivePlayers.Remove(playerId);
             }
         }
+
+        void HandshakeToClient(byte[] data, int recv, EndPoint Remote)
+        {
+            string message = System.Text.Encoding.UTF8.GetString(data, 0, recv);
+            if (message == "PING")
+            {
+                byte[] pongMessage = System.Text.Encoding.UTF8.GetBytes("PONG");
+                NetworkManager.Instance.nm_Socket.SendTo(pongMessage, Remote);
+
+                NetworkManager.Instance.nm_StatusText += $"\nReceived PING seding PONG";
+            }
+        }
         #endregion
 
         void SendHost(EndPoint Remote, byte[] packetToSend)
@@ -95,7 +118,6 @@ namespace HyperStrike
             {
                 data = new byte[1024];
                 recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
-                Debug.Log($"\nServer received a packet of {recv} bytes");
 
                 int playerId = GetUserByEndPoint(Remote);
 
@@ -106,17 +128,18 @@ namespace HyperStrike
 
                 if (playerId == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
-                    Debug.Log($"Cretaing Client");
+                    //Thread handshake = new Thread(() => HandshakeToClient(data, recv, Remote));
+                    HandshakeToClient(data, recv, Remote);
+
                     // READ DATA FROM NEW CLIENT
                     NetworkManager.Instance.HandlePacket(data, out PlayerDataPacket playerDataPacket);
-                    Debug.Log($"New Client packet handled");
+
                     if (playerDataPacket == null) continue;
-                    Debug.Log($"New Player: {playerDataPacket.PlayerName}");
+
                     server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
 
                     // Send all data to NEW CLIENT
-                    byte[] packetToSend = new byte[1024];
-                    packetToSend = CreatePacketToSend();
+                    byte[] packetToSend = CreatePacketToSend();
                     Thread serverAnswer = new Thread(() => SendHost(Remote, packetToSend));
                     serverAnswer.Start();
 

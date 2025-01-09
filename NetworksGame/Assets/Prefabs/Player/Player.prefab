@@ -192,7 +192,6 @@ MonoBehaviour:
   cinemachineCamera: {fileID: 5825031632169213714}
   playerCam: {fileID: 2077707639130893356}
   rocketSpawnOffset: {fileID: 3514046689720087744}
-  rocketSpawnVfx: {fileID: 0}
   rocketPrefab: {fileID: 2683894209613125051, guid: 35ac5d67c1bb8054eb56eb0247054f2d,
     type: 3}
 --- !u!1 &2077707639130893356
@@ -711,6 +710,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8145790159873141390, guid: f9d8be75621307846a41b0f787379a91,
+        type: 3}
+      propertyPath: m_MatchWidthOrHeight
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8145790159873141390, guid: f9d8be75621307846a41b0f787379a91,
+        type: 3}
+      propertyPath: m_ReferenceResolution.x
+      value: 1920
+      objectReference: {fileID: 0}
+    - target: {fileID: 8145790159873141390, guid: f9d8be75621307846a41b0f787379a91,
+        type: 3}
+      propertyPath: m_ReferenceResolution.y
+      value: 1080
       objectReference: {fileID: 0}
     - target: {fileID: 9221455003890469820, guid: f9d8be75621307846a41b0f787379a91,
         type: 3}

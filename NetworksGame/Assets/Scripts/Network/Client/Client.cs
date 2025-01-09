@@ -4,9 +4,8 @@ using System.Threading;
 using System.Collections;
 using UnityEngine;
 using System.IO;
-using System;
-using System.Linq;
 using System.Collections.Generic;
+
 
 namespace HyperStrike
 {
@@ -15,28 +14,50 @@ namespace HyperStrike
         float sendInterval = 0.01f; // 10 ms interval
         Thread receive;
 
-        public void StartClient(string username, string hostIp = "127.0.0.1")
+        public bool StartClient(string username, string hostIp = "127.0.0.1")
         {
             try
             {
                 // IP EndPoint Default to Local: "127.0.0.1" Port: 9050
-                IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(hostIp), 9050);
+                NetworkManager.Instance.nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse(hostIp), 9050);
 
                 // Detect if the user is not waiting and in the Menu (or Finished Match?)
                 if (!NetworkManager.Instance.nm_Connected)
                 {
                     NetworkManager.Instance.nm_Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                    NetworkManager.Instance.nm_Socket.Connect(ipep);
-                    NetworkManager.Instance.nm_StatusText += "\nConnected to the host";
+                    NetworkManager.Instance.nm_Socket.Connect(NetworkManager.Instance.nm_ServerEndPoint);
 
-                    NetworkManager.Instance.nm_Connected = true;
+                    // Send a ping message to the host
+                    byte[] pingMessage = System.Text.Encoding.UTF8.GetBytes("PING");
+                    NetworkManager.Instance.nm_Socket.Send(pingMessage);
+
+                    // Wait for a response with a timeout
+                    byte[] buffer = new byte[1024];
+                    NetworkManager.Instance.nm_Socket.ReceiveTimeout = 2000; // Set timeout to 2 seconds
+                    EndPoint endpoint = new IPEndPoint(IPAddress.Any, 0);
+                    int receivedBytes = NetworkManager.Instance.nm_Socket.ReceiveFrom(buffer, ref endpoint);
+
+                    string response = System.Text.Encoding.UTF8.GetString(buffer, 0, receivedBytes);
+                    if (response == "PONG")
+                    {
+                        NetworkManager.Instance.nm_StatusText += $"\nPong received {response}";
+                        NetworkManager.Instance.nm_StatusText += "\nConnected to the host";
+                        NetworkManager.Instance.nm_Connected = true;
+                        return true;
+                    }
                 }
             }
             catch (SocketException ex)
             {
                 NetworkManager.Instance.nm_StatusText += $"\nError connecting to the server: {ex.Message}";
+                return false;
             }
+            NetworkManager.Instance.nm_StatusText += $"\nError connecting to the server!";
+            return false;
+        }
 
+        public void SetClient(string username)
+        {
             int userID = IDGenerator.GenerateID();
 
             NetworkManager.Instance.SetNetPlayer(username, userID);
@@ -113,10 +134,11 @@ namespace HyperStrike
         {
             while (true)
             {
+                
                 byte[] data = new byte[1024];
                 IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
                 EndPoint Remote = (EndPoint)(sender);
-                int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
+                int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote); // maybe change remote to server endpoint
 
                 if (recv == 0) continue;
 

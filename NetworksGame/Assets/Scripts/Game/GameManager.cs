@@ -27,7 +27,15 @@ namespace HyperStrike
 
         void Awake() 
         {
-            if (Instance == null) Instance = this;
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
 
             Packet = new GameStatePacket();
         }
@@ -36,21 +44,16 @@ namespace HyperStrike
         [HideInInspector] public int gm_MaxPlayers = 6;
         [HideInInspector] public int gm_MaxTeamPlayers = 3;
 
-        // Conditions
-        public float gm_MaxTime = 300f; // 300 = 5 minutes in seconds
-        [HideInInspector] public int gm_LocalGoals = 0;
-        [HideInInspector] public int gm_VisitantGoals = 0;
+        
 
         public static GameState gm_GameState { get; private set; } = GameState.MENU; // Change for the final
 
         [Header("Objects")]
-        [SerializeField] GameObject managerObj;
         [SerializeField] GameObject canvasObj;
         [SerializeField] GameObject menuPanelObj;
 
         private void Start()
         {
-            DontDestroyOnLoad(managerObj);
             DontDestroyOnLoad(canvasObj);
         }
 
@@ -65,6 +68,7 @@ namespace HyperStrike
                 case GameState.TITLE:
                     break;
                 case GameState.MENU:
+                    SceneManager.LoadScene("MainMenu");
                     break;
                 case GameState.WAITING_ROOM:
                     //StartCoroutine(CustomSceneManager.LoadYourAsyncScene("PitchScene"));

@@ -12,7 +12,18 @@ namespace HyperStrike
     public class NetworkManager : MonoBehaviour
     {
         public static NetworkManager Instance { get; private set; }
-        void Awake() { if (Instance == null) Instance = this; }
+        void Awake() 
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
 
         PacketManager packetManager = new PacketManager();
 
@@ -47,7 +58,6 @@ namespace HyperStrike
         void Start()
         {
             nm_UItext = nm_UItextObj.GetComponent<TextMeshProUGUI>();
-            nm_ServerEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050); // Set server IP and port
         }
 
         void Update()
@@ -114,7 +124,7 @@ namespace HyperStrike
             PacketType type = PacketType.NONE;
 
             playerData = null;
-            Debug.Log($"There are {packets.Count} different packets");
+            //Debug.Log($"There are {packets.Count} different packets");
             if (packets.Count < 1)
                 return;
 
@@ -147,7 +157,7 @@ namespace HyperStrike
         private List<byte[]> SeparateDataPackets(byte[] data)
         {
             List<byte[]> packets = new List<byte[]>();
-            Debug.Log($"Data contains {data.Length} Bytes");
+
             for (int nextPacket = 0; nextPacket < data.Length;)
             {
                 PacketType packetType = (PacketType)data[nextPacket];
@@ -186,7 +196,6 @@ namespace HyperStrike
             PlayerDataPacket playerPacket = new PlayerDataPacket();
             playerPacket.Deserialize(playerData, lastState);
             
-            Debug.Log($"Player Client: {playerPacket.PlayerName}");
 
             if(playerId == nm_PlayerData.PlayerId) return playerPacket;
 
@@ -205,7 +214,6 @@ namespace HyperStrike
                     nm_StatusText += $"\n{playerPacket.PlayerName} joined the server called UDP Server";
                 }
             });
-            Debug.Log("Player data processed.");
             return playerPacket;
         }
 
@@ -227,10 +235,9 @@ namespace HyperStrike
                 MainThreadInvoker.Invoke(() =>
                 {
                     Projectile existingProjectile = InstatiateProjectile(projectilePacket);
-                    Debug.Log($"\nInstantiating NEW PROJECTILE: {projectilePacket.ProjectileId}.");
+                    // NEED TO CHECK IF ITS SERVER AND SEND
                 });
             }
-            Debug.Log("Projectile data processed.");
         }
         #endregion
     }

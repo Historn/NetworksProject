@@ -6,8 +6,13 @@ using UnityEngine;
 
 public class Match : MonoBehaviour
 {
-    private float currentMatchTime = 300f;
     private Coroutine matchTimerCoroutine;
+
+    [Header("Match Conditions")]
+    public float maxTime = 300f; // 300 = 5 minutes in seconds
+    private float currentMatchTime = 300f;
+    [HideInInspector] public int localGoals = 0;
+    [HideInInspector] public int visitantGoals = 0;
 
     [Header("Match Settings")]
     [SerializeField] private GameObject ball;
@@ -54,7 +59,7 @@ public class Match : MonoBehaviour
     void InitMatch()
     {
         //currentMatchTime = GameManager.Instance.gm_MaxTime;
-        currentMatchTime = 300f;
+        currentMatchTime = maxTime;
         UpdateScoreUI();
         UpdateTimerUI();
 
@@ -63,14 +68,14 @@ public class Match : MonoBehaviour
 
     private void UpdateScoreUI()
     {
-        localScoreText.text = $"Local: {GameManager.Instance.gm_LocalGoals}";
-        visitantScoreText.text = $"Visitant: {GameManager.Instance.gm_VisitantGoals}";
+        localScoreText.text = $"Local: {localGoals}";
+        visitantScoreText.text = $"Visitant: {visitantGoals}";
 
-        localScore3DText.text = GameManager.Instance.gm_LocalGoals.ToString();
-        visitantScore3DText.text = GameManager.Instance.gm_VisitantGoals.ToString();
+        localScore3DText.text = localGoals.ToString();
+        visitantScore3DText.text = visitantGoals.ToString();
 
-        Packet.LocalGoals = GameManager.Instance.gm_LocalGoals;
-        Packet.VisitantGoals = GameManager.Instance.gm_VisitantGoals;
+        Packet.LocalGoals = localGoals;
+        Packet.VisitantGoals = visitantGoals;
     }
 
     private void UpdateTimerUI()
@@ -90,7 +95,7 @@ public class Match : MonoBehaviour
 
     public void IncrementLocalScore()
     {
-        GameManager.Instance.gm_LocalGoals++;
+        localGoals++;
         UpdateScoreUI();
 
         TriggerGoalVFX(localGoalVFX);
@@ -100,7 +105,7 @@ public class Match : MonoBehaviour
 
     public void IncrementVisitantScore()
     {
-        GameManager.Instance.gm_VisitantGoals++;
+        visitantGoals++;
         UpdateScoreUI();
 
         TriggerGoalVFX(visitantGoalVFX);
@@ -140,11 +145,11 @@ public class Match : MonoBehaviour
         }
 
         // Set the game state to WON or LOOSE based on the score
-        GameState st = GameManager.Instance.gm_LocalGoals > GameManager.Instance.gm_VisitantGoals ? GameState.WON : GameState.LOOSE;
+        GameState st = localGoals > visitantGoals ? GameState.WON : GameState.LOOSE;
         GameManager.Instance.SetGameState(st);
 
         Debug.Log("Match Ended!");
-        Debug.Log($"Final Score: Local {GameManager.Instance.gm_LocalGoals} - {GameManager.Instance.gm_VisitantGoals} Visitant");
+        Debug.Log($"Final Score: Local {localGoals} - {visitantGoals} Visitant");
 
         RestartMatch();
     }
@@ -152,12 +157,12 @@ public class Match : MonoBehaviour
     public void RestartMatch()
     {
         // Reset the scores
-        GameManager.Instance.gm_LocalGoals = 0;
-        GameManager.Instance.gm_VisitantGoals = 0;
+        localGoals = 0;
+        visitantGoals = 0;
         UpdateScoreUI();
 
         // Reset the timer
-        currentMatchTime = GameManager.Instance.gm_MaxTime;
+        currentMatchTime = maxTime;
         UpdateTimerUI();
 
         // Reset the ball to the center
@@ -185,6 +190,8 @@ public class Match : MonoBehaviour
     void UpdateGameObjectData()
     {
         currentMatchTime = Packet.CurrentTime;
+        localGoals = Packet.LocalGoals;
+        visitantGoals = Packet.VisitantGoals;
         ball.transform.position = new Vector3(Packet.BallPosition[0], Packet.BallPosition[1], Packet.BallPosition[2]);
         ball.transform.eulerAngles = new Vector3(Packet.BallRotation[0], Packet.BallRotation[1], Packet.BallRotation[2]);
     }
@@ -192,6 +199,8 @@ public class Match : MonoBehaviour
     void UpdatePacket()
     {
         Packet.CurrentTime = currentMatchTime;
+        Packet.LocalGoals = localGoals;
+        Packet.VisitantGoals = visitantGoals;
         Packet.BallPosition[0] = ball.transform.position.x;
         Packet.BallPosition[1] = ball.transform.position.y;
         Packet.BallPosition[2] = ball.transform.position.z;

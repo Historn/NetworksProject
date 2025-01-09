@@ -41,8 +41,8 @@ namespace HyperStrike
                 long sizePosition = ms.Position;
                 writer.Write(0); // Temporary Size value
 
-                WriteDelta(writer, lastMatchState?.LocalGoals, LocalGoals);
-                WriteDelta(writer, lastMatchState?.VisitantGoals, VisitantGoals);
+                writer.Write(LocalGoals);
+                writer.Write(VisitantGoals);
                 WriteDelta(writer, lastMatchState?.CurrentTime, CurrentTime);
                 WriteDelta(writer, lastMatchState?.BallPosition, BallPosition);
                 WriteDelta(writer, lastMatchState?.BallRotation, BallRotation);
@@ -68,8 +68,8 @@ namespace HyperStrike
             {
                 Type = (PacketType)reader.ReadByte();
                 Size = reader.ReadInt32();
-                LocalGoals = ReadDelta(reader, lastMatchState?.LocalGoals);
-                VisitantGoals = ReadDelta(reader, lastMatchState?.VisitantGoals);
+                LocalGoals = reader.ReadInt32();
+                VisitantGoals = reader.ReadInt32();
                 CurrentTime = ReadDelta(reader, lastMatchState?.CurrentTime);
                 BallPosition = ReadDelta(reader, lastMatchState?.BallPosition, 3);
                 BallRotation = ReadDelta(reader, lastMatchState?.BallRotation, 3);

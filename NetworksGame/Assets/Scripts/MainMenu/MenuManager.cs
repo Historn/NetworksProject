@@ -5,15 +5,17 @@ using System;
 
 public class MenuManager : MonoBehaviour
 {
+    [Header("Menu Panels")]
     [SerializeField] GameObject initMenu;
-
     [SerializeField] GameObject hostMenu;
-
     [SerializeField] GameObject joinMenu;
 
+    [Header("Connection Inputs")]
     public TMP_InputField usernameHost;
     public TMP_InputField usernameClient;
     public TMP_InputField hostIp;
+
+    [SerializeField] TextMeshProUGUI errorText;
 
     public void OpenHostGameMenu()
     {
@@ -31,6 +33,7 @@ public class MenuManager : MonoBehaviour
     {
         hostMenu.SetActive(false);
         joinMenu.SetActive(false);
+        errorText.text = "";
         initMenu.SetActive(true);
     }
 
@@ -41,16 +44,22 @@ public class MenuManager : MonoBehaviour
             throw new ArgumentNullException(nameof(usernameHost));
         }
 
+        if (NetworkManager.Instance.gameObject.GetComponent<Server>().StartHost(usernameHost.text) == false)
+        {
+            errorText.text = "Couldn't create game, it has been already created in this local network.";
+            return;
+        }
+
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
         NetworkManager.Instance.gameObject.GetComponent<Client>().enabled = false;
-
+        
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
-            "PitchScene", 
+            "PitchScene",
             async (args) =>
             {
             string playerName = args[0] as string;
-            NetworkManager.Instance.gameObject.GetComponent<Server>().StartHost(playerName);
+            NetworkManager.Instance.gameObject.GetComponent<Server>().SetHost(playerName);
             },
             usernameHost.text));
     }
@@ -67,6 +76,12 @@ public class MenuManager : MonoBehaviour
             throw new ArgumentNullException(nameof(hostIp));
         }
 
+        if (NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(usernameClient.text, hostIp.text) == false) 
+        {
+            errorText.text = "Failed to connect to the host!";
+            return; 
+        }
+
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
         NetworkManager.Instance.gameObject.GetComponent<Server>().enabled = false;
@@ -76,11 +91,9 @@ public class MenuManager : MonoBehaviour
             async (args) =>
             {
                 string playerName = args[0] as string;
-                string Ip = args[1] as string;
-                NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(playerName, Ip);
+                NetworkManager.Instance.gameObject.GetComponent<Client>().SetClient(playerName);
             },
-            usernameClient.text,
-            hostIp.text));
+            usernameClient.text));
     }
 
     public void Quit()
