@@ -25,8 +25,6 @@ namespace HyperStrike
             }
         }
 
-        PacketManager packetManager = new PacketManager();
-
         [HideInInspector]public Socket nm_Socket;
         [HideInInspector]public IPEndPoint nm_ServerEndPoint;
 
