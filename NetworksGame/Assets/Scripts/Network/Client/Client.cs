@@ -5,12 +5,17 @@ using System.Collections;
 using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
+using System;
+using System.Linq;
 
 
 namespace HyperStrike
 {
     public class Client : MonoBehaviour
     {
+        private DeliveryNotificationSystem deliverySystem = new DeliveryNotificationSystem();
+        private float packetTimeout = 1.0f; // 1 second timeout
+
         float sendInterval = 0.01f; // 10 ms interval
         Thread receive;
 
@@ -65,6 +70,7 @@ namespace HyperStrike
             NetworkManager.Instance.nm_StatusText += $"\nPlayer {username} with ID {userID} created";
 
             NetworkManager.Instance.nm_Match = GameObject.Find("MatchManager").GetComponent<Match>();
+            NetworkManager.Instance.nm_Ball = GameObject.Find("Ball").GetComponent<BallController>();
 
             StartCoroutine(SendPacketsWithDelay());
 
@@ -76,16 +82,19 @@ namespace HyperStrike
         private void SendClientPacket()
         {
             byte[] clientPacket = new byte[1024];
+            int packetId = deliverySystem.GeneratePacketId();
 
             using (MemoryStream memoryStream = new MemoryStream())
             {
+                //memoryStream.Write(BitConverter.GetBytes(packetId), 0, sizeof(int)); // Add Packet ID
+
                 int id = NetworkManager.Instance.nm_PlayerData.PlayerId;
 
                 var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(id) 
                     ? NetworkManager.Instance.nm_LastPlayerStates[id] 
                     : new PlayerDataPacket();
 
-                byte[] playerData = NetworkManager.Instance.nm_ActivePlayers[id].Packet.Serialize(lastState);
+                byte[] playerData = NetworkManager.Instance.nm_PlayerScript.Packet.Serialize(lastState);
 
                 memoryStream.Write(playerData, 0, playerData.Length);
 
@@ -116,8 +125,8 @@ namespace HyperStrike
                 memoryStream.Write(projectilesData, 0, projectilesData.Length);
 
                 clientPacket = memoryStream.ToArray();
+                deliverySystem.RegisterSentPacket(packetId, Time.time);
             }
-
             NetworkManager.Instance.nm_Socket.SendTo(clientPacket, NetworkManager.Instance.nm_ServerEndPoint);
         }
 
@@ -129,19 +138,23 @@ namespace HyperStrike
                 yield return new WaitForSeconds(sendInterval); // Wait before sending the next packet
             }
         }
-
+        
         void ReceiveClient()
         {
+            byte[] data = new byte[1024];
+            IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+            EndPoint Remote = (EndPoint)(sender);
+
             while (true)
             {
-                
-                byte[] data = new byte[1024];
-                IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-                EndPoint Remote = (EndPoint)(sender);
-                int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote); // maybe change remote to server endpoint
+                int recv = NetworkManager.Instance.nm_Socket.ReceiveFrom(data, ref Remote);
 
                 if (recv == 0) continue;
 
+                int packetId = BitConverter.ToInt32(data, 0); // Extract Packet ID
+                deliverySystem.AcknowledgePacket(packetId);
+
+                byte[] packetData = data.Skip(sizeof(int)).ToArray(); // Remove Packet ID
                 NetworkManager.Instance.HandlePacket(data, out _); // Discard out parameter
             }
         }

@@ -32,17 +32,24 @@ namespace HyperStrike
         TextMeshProUGUI nm_UItext;
         [HideInInspector] public string nm_StatusText;
         [HideInInspector] public bool nm_Connected = false;
+        [HideInInspector] public bool nm_IsHost = false;
 
         [SerializeField]GameObject clientInstancePrefab;
         [SerializeField]GameObject rocketInstancePrefab;
 
         [HideInInspector] public GameObject nm_Player;
         public PlayerDataPacket nm_PlayerData = new PlayerDataPacket();
+        public Player nm_PlayerScript = new Player();
 
 
         // VARIABLES FOR REPLICATION MANAGEMENT
+        //[HideInInspector]
         public Match nm_Match;
         public MatchStatePacket nm_LastMatchState = new MatchStatePacket();
+
+        //[HideInInspector]
+        public BallController nm_Ball;
+        public BallPacket nm_LastBallState = new BallPacket();
 
         [HideInInspector]
         public Dictionary<int, Player> nm_ActivePlayers = new Dictionary<int, Player>();
@@ -78,6 +85,7 @@ namespace HyperStrike
 
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
+                nm_PlayerScript = player;
                 nm_ActivePlayers.Add(player.Packet.PlayerId, player);
             }
         }
@@ -122,7 +130,7 @@ namespace HyperStrike
             PacketType type = PacketType.NONE;
 
             playerData = null;
-            //Debug.Log($"There are {packets.Count} different packets");
+
             if (packets.Count < 1)
                 return;
 
@@ -146,6 +154,9 @@ namespace HyperStrike
                     case PacketType.PROJECTILE:
                         HandleProjectileData(packet);
                         break;
+                    case PacketType.BALL:
+                        HandleBallData(packet);
+                        break;
                     default:
                         break;
                 }
@@ -159,6 +170,7 @@ namespace HyperStrike
             for (int nextPacket = 0; nextPacket < data.Length;)
             {
                 PacketType packetType = (PacketType)data[nextPacket];
+                Debug.Log(packetType);
                 if (packetType == PacketType.NONE) break;
 
                 int packetSize = BitConverter.ToInt32(data, nextPacket + 1); // Take Size
@@ -181,6 +193,17 @@ namespace HyperStrike
             nm_Match.updateGO = true;
 
             nm_LastMatchState = match;
+        }
+
+        private void HandleBallData(byte[] ballData)
+        {
+            BallPacket ball = new BallPacket();
+            ball.Deserialize(ballData, nm_LastBallState);
+
+            nm_Ball.Packet = ball;
+            nm_Ball.updateGO = true;
+
+            nm_LastBallState = ball;
         }
 
         private PlayerDataPacket HandlePlayerData(byte[] playerData)
@@ -226,14 +249,14 @@ namespace HyperStrike
             ProjectilePacket projectilePacket = new ProjectilePacket();
             projectilePacket.Deserialize(projectileData, lastState);
 
-            var projectile = GetProjectileById(projectileId);
+            bool projectile = GetProjectileById(projectileId);
 
             if (!projectile)
             {
                 MainThreadInvoker.Invoke(() =>
                 {
                     Projectile existingProjectile = InstatiateProjectile(projectilePacket);
-                    // NEED TO CHECK IF ITS SERVER AND SEND
+                    //if(!nm_ProjectilesToSend.ContainsKey(projectileId) && nm_ActivePlayers.Count > 1 && nm_IsHost) nm_ProjectilesToSend.Add(projectileId, existingProjectile);
                 });
             }
         }

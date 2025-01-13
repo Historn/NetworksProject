@@ -14,7 +14,6 @@ public abstract class Projectile : MonoBehaviour
     private void Awake()
     {
         Packet = new ProjectilePacket();
-        //NetworkManager.Instance.nm_ProjectilesToSend.Add(Packet.ProjectileId, this);
     }
 
     public abstract void Move();

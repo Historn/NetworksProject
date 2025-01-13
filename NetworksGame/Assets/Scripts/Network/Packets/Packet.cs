@@ -15,6 +15,7 @@ namespace HyperStrike
         PLAYER_DATA,
         ABILITY,
         PROJECTILE,
+        BALL
     }
 
     public abstract class Packet : ISerializable

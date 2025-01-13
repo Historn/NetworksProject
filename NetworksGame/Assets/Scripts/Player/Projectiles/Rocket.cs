@@ -35,7 +35,10 @@ public class Rocket : Projectile
 
         if (other != null) 
         {
+            SpawnParticles(explosionFX, 3f, true, other);
+            //if (NetworkManager.Instance.nm_IsHost) Explode(other);
             Explode(other);
+            Destroy(gameObject);
         }
     }
 
@@ -46,8 +49,6 @@ public class Rocket : Projectile
 
     void Explode(Collision other)
     {
-        SpawnParticles(explosionFX, 3f, true, other);
-
         Collider[] colliders = Physics.OverlapSphere(transform.position, radius);
 
         foreach (Collider collider in colliders)
@@ -59,22 +60,10 @@ public class Rocket : Projectile
                 
                 rb.AddForce(dir.normalized * explosionForce, ForceMode.Impulse);
             }
-            //ApplyDamage(collider.gameObject);
         }
-        Destroy(gameObject);
     }
 
-    public override void ApplyDamage(GameObject collidedGO)
-    {
-        //Player p = collidedGO.GetComponent<Player>();
-        //if (p != null && p.Packet.playerId != playerShooterID) 
-        //{
-        //    p.playerData.health -= damage;
-        //    Debug.Log(p.name + " Health: " + p.playerData.health);
-        //}
-
-        // Add VFX
-    }
+    public override void ApplyDamage(GameObject collidedGO) {}
 
     void SpawnParticles(GameObject particlesGO, float destructionTime = -1f, bool useImpactNormal = false, Collision other = null)
     {

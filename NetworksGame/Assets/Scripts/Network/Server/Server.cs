@@ -12,7 +12,6 @@ namespace HyperStrike
     public class Server : MonoBehaviour
     {
         TimeoutManager timeoutManager = new TimeoutManager();
-        PredictionManager predictionManager = new PredictionManager();
         Dictionary<EndPoint, int> server_ConnectedUsers = new Dictionary<EndPoint, int>();
 
         Thread receive;
@@ -52,8 +51,10 @@ namespace HyperStrike
             NetworkManager.Instance.nm_StatusText += $"\nHost User created with name {username} and ID {userID}";
 
             NetworkManager.Instance.nm_Match = GameObject.Find("MatchManager").GetComponent<Match>();
+            NetworkManager.Instance.nm_Ball = GameObject.Find("Ball").GetComponent<BallController>();
 
             NetworkManager.Instance.nm_Connected = true;
+            NetworkManager.Instance.nm_IsHost = true;
 
             receive = new Thread(ReceiveHost);
             receive.Start();
@@ -172,8 +173,6 @@ namespace HyperStrike
         }
 
         #region REPLICATION
-        // HOST HAS TO SEND
-        // GAME STATE + CLIENTS STATE + GENERAL NET OBJECTS WITH ITS ACTIONS?
         byte[] CreatePacketToSend()
         {
             byte[] hostPacket = new byte[1024];
@@ -182,6 +181,9 @@ namespace HyperStrike
             {                                                                                                                                                                                                                                                                                                                                                                                                           
                 byte[] matchStateData = NetworkManager.Instance.nm_Match.Packet.Serialize(NetworkManager.Instance.nm_LastMatchState);
                 memoryStream.Write(matchStateData, 0, matchStateData.Length);
+
+                byte[] ballData = NetworkManager.Instance.nm_Ball.Packet.Serialize(NetworkManager.Instance.nm_LastBallState);
+                memoryStream.Write(ballData, 0, ballData.Length);
                 
                 MemoryStream playerStream = new MemoryStream();
              

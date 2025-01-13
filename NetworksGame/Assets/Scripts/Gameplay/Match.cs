@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class Match : MonoBehaviour
 {
+    Interpolation interpolation = new Interpolation();
+
     private Coroutine matchTimerCoroutine;
 
     [Header("Match Conditions")]
@@ -35,6 +37,9 @@ public class Match : MonoBehaviour
     public MatchStatePacket Packet;
     public bool updateGO = false;
 
+    Rigidbody ballRigidbody;
+    BallController ballController;
+
     private void Awake()
     {
         Packet = new MatchStatePacket();
@@ -43,6 +48,8 @@ public class Match : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        ballRigidbody = ball.GetComponent<Rigidbody>();
+        ballController = ball.GetComponent<BallController>();
         InitMatch();
     }
 
@@ -73,9 +80,6 @@ public class Match : MonoBehaviour
 
         localScore3DText.text = localGoals.ToString();
         visitantScore3DText.text = visitantGoals.ToString();
-
-        Packet.LocalGoals = localGoals;
-        Packet.VisitantGoals = visitantGoals;
     }
 
     private void UpdateTimerUI()
@@ -178,12 +182,20 @@ public class Match : MonoBehaviour
     private void ResetBallPosition()
     {
         // Reset ball's position and velocity
-        ball.transform.position = ballStartPosition.position;
-        Rigidbody ballRigidbody = ball.GetComponent<Rigidbody>();
         if (ballRigidbody != null)
         {
+            ballRigidbody.position = ballStartPosition.position;
             ballRigidbody.velocity = Vector3.zero;
             ballRigidbody.angularVelocity = Vector3.zero;
+        }
+    }
+
+    void UpdatePlayerScore()
+    {
+        if (NetworkManager.Instance.nm_ActivePlayers.ContainsKey(ballController.Packet.LastHitPlayerId))
+        {
+            NetworkManager.Instance.nm_ActivePlayers[ballController.Packet.LastHitPlayerId].Packet.Score += 100;
+            NetworkManager.Instance.nm_ActivePlayers[ballController.Packet.LastHitPlayerId].Packet.Goals += 1;
         }
     }
 
@@ -192,8 +204,7 @@ public class Match : MonoBehaviour
         currentMatchTime = Packet.CurrentTime;
         localGoals = Packet.LocalGoals;
         visitantGoals = Packet.VisitantGoals;
-        ball.transform.position = new Vector3(Packet.BallPosition[0], Packet.BallPosition[1], Packet.BallPosition[2]);
-        ball.transform.eulerAngles = new Vector3(Packet.BallRotation[0], Packet.BallRotation[1], Packet.BallRotation[2]);
+        UpdateScoreUI();
     }
 
     void UpdatePacket()
@@ -201,11 +212,5 @@ public class Match : MonoBehaviour
         Packet.CurrentTime = currentMatchTime;
         Packet.LocalGoals = localGoals;
         Packet.VisitantGoals = visitantGoals;
-        Packet.BallPosition[0] = ball.transform.position.x;
-        Packet.BallPosition[1] = ball.transform.position.y;
-        Packet.BallPosition[2] = ball.transform.position.z;
-        Packet.BallRotation[0] = ball.transform.eulerAngles.x;
-        Packet.BallRotation[1] = ball.transform.eulerAngles.y;
-        Packet.BallRotation[2] = ball.transform.eulerAngles.z;
     } 
 }

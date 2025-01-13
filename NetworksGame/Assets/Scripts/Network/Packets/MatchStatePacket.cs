@@ -5,16 +5,15 @@ namespace HyperStrike
 {
     public class MatchStatePacket : Packet
     {
-        // 1 + 28 = 29
-        public int LocalGoals = -1; // 4
-        public int VisitantGoals = -1; // 4
-        public float CurrentTime = 0.0f; // 4
-        public float[] BallPosition = new float[3]; // 12
-        public float[] BallRotation = new float[3]; // 14
+        public int LocalGoals = -1;
+        public int VisitantGoals = -1;
+        public float CurrentTime = 0.0f;
+        public float[] BallPosition = new float[3];
+        public float[] BallRotation = new float[4];
 
         public MatchStatePacket()
         {
-            Type = PacketType.MATCH; // Unique packet type for projectiles
+            Type = PacketType.MATCH;
 
             BallPosition[0] = 0;
             BallPosition[1] = 0;
@@ -23,6 +22,7 @@ namespace HyperStrike
             BallRotation[0] = 0;
             BallRotation[1] = 0;
             BallRotation[2] = 0;
+            BallRotation[3] = 0;
         }
 
         public override byte[] Serialize(ISerializable lastState)
@@ -41,8 +41,8 @@ namespace HyperStrike
                 long sizePosition = ms.Position;
                 writer.Write(0); // Temporary Size value
 
-                writer.Write(LocalGoals);
-                writer.Write(VisitantGoals);
+                WriteDelta(writer, lastMatchState?.LocalGoals, LocalGoals);
+                WriteDelta(writer, lastMatchState?.VisitantGoals, VisitantGoals);
                 WriteDelta(writer, lastMatchState?.CurrentTime, CurrentTime);
                 WriteDelta(writer, lastMatchState?.BallPosition, BallPosition);
                 WriteDelta(writer, lastMatchState?.BallRotation, BallRotation);
@@ -68,11 +68,11 @@ namespace HyperStrike
             {
                 Type = (PacketType)reader.ReadByte();
                 Size = reader.ReadInt32();
-                LocalGoals = reader.ReadInt32();
-                VisitantGoals = reader.ReadInt32();
+                LocalGoals = ReadDelta(reader, lastMatchState?.LocalGoals);
+                VisitantGoals = ReadDelta(reader, lastMatchState?.VisitantGoals);
                 CurrentTime = ReadDelta(reader, lastMatchState?.CurrentTime);
                 BallPosition = ReadDelta(reader, lastMatchState?.BallPosition, 3);
-                BallRotation = ReadDelta(reader, lastMatchState?.BallRotation, 3);
+                BallRotation = ReadDelta(reader, lastMatchState?.BallRotation, 4);
             }
         }
     }

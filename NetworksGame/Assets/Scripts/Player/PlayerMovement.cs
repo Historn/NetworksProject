@@ -6,6 +6,9 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Settings")]
+    [SerializeField]GameObject leaderboardPanel;
+
     [Header("Character Data")]
     public Character character; // Set character data, add needed data here to chara data scriptable object
 
@@ -32,6 +35,9 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode ability3Key = KeyCode.E;
     public KeyCode ultimateKey = KeyCode.Q;
 
+    [Header("UiKeyBinds")]
+    public KeyCode showLeaderboard = KeyCode.Tab;
+
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask groundMask;
@@ -53,7 +59,6 @@ public class PlayerMovement : MonoBehaviour
     Vector3 moveDirection;
 
     Rigidbody rb;
-
 
     [Header("Attacks")]
     public GameObject rocketSpawnOffset;
@@ -124,6 +129,12 @@ public class PlayerMovement : MonoBehaviour
             Attack();
             Invoke(nameof(ResetAttack), attackCooldown);    //Delay for attack to reset
         }
+        
+        //Show Leaderboard
+        if (UnityEngine.Input.GetKey(showLeaderboard))
+            leaderboardPanel.SetActive(true);
+        else 
+            leaderboardPanel.SetActive(false);
 
     }
 

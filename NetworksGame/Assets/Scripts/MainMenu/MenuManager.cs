@@ -52,6 +52,7 @@ public class MenuManager : MonoBehaviour
 
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
+        NetworkManager.Instance.nm_IsHost = true;
         NetworkManager.Instance.gameObject.GetComponent<Client>().enabled = false;
         
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
@@ -84,6 +85,7 @@ public class MenuManager : MonoBehaviour
 
         GameManager.Instance.SetGameState(GameState.WAITING_ROOM);
 
+        NetworkManager.Instance.nm_IsHost = false;
         NetworkManager.Instance.gameObject.GetComponent<Server>().enabled = false;
 
         StartCoroutine(CustomSceneManager.LoadSceneWithMethodAsync(
