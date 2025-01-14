@@ -1,4 +1,5 @@
 using HyperStrike;
+using System.Net.Sockets;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -66,17 +67,20 @@ public class BallController : MonoBehaviour
     {
         if (!NetworkManager.Instance.nm_IsHost)
         {
-            // Extrapolate if the last update was more than 10 ms ago
-            if (Time.time - lastUpdateTime <= 0.01f && updateGO) // Only interpolate if updates are recent
+            if (Time.time - lastUpdateTime <= NetworkManager.Instance.nm_UpdateThreshold + NetworkManager.Instance.nm_Tolerance
+                && updateGO) // Only interpolate if updates are recent and able to update
             {
                 UpdateGameObjectData();
                 updateGO = false;
+                Debug.Log("UPDATED BALL");
             }
             else
             {
-                // Extrapolate if no updates received in the last 10 ms
+                // Extrapolate if no updates received in the last 20 ms
                 rb.position = prediction.PredictPositionWithCollisions(rb.position, velocity, Time.fixedDeltaTime, pitchMin, pitchMax, ref velocity);
                 rb.rotation = prediction.PredictRotation(rb.rotation, rb.angularVelocity, Time.fixedDeltaTime);
+                Debug.Log("PREDICTED BALL");
+                lastUpdateTime = Time.time;
             }
         }
     }

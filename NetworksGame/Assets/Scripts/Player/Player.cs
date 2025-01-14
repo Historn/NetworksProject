@@ -30,6 +30,7 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
+        //!NetworkManager.Instance.nm_Player == this
         if (updateGO)
         {
             UpdateGameObjectData();
@@ -52,11 +53,18 @@ public class Player : MonoBehaviour
     
     void UpdateGameObjectData()
     {
+        // When not simulating an input the player RigidBody must be kinematic
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        rb.isKinematic = true;
+
         Vector3 pos = new Vector3(Packet.Position[0], Packet.Position[1], Packet.Position[2]);
         Quaternion rot = new Quaternion(Packet.Rotation[0], Packet.Rotation[1], Packet.Rotation[2], Packet.Rotation[3]);
         
         if (interpolation.IsStateChanged(rb.position, pos)) rb.position = interpolation.Interpolate(rb.position, pos);
         if (interpolation.IsStateChanged(rb.rotation, rot)) rb.rotation = interpolation.Interpolate(rb.rotation, rot);
+
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        rb.isKinematic = false;
     }
 
     IEnumerator PlayerDead()

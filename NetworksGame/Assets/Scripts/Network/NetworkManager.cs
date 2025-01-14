@@ -25,6 +25,9 @@ namespace HyperStrike
             }
         }
 
+        [HideInInspector]public float nm_UpdateThreshold = 0.02f; // Expected update interval
+        [HideInInspector]public float nm_Tolerance = 0.001f; // Allowable variation
+
         [HideInInspector]public Socket nm_Socket;
         [HideInInspector]public IPEndPoint nm_ServerEndPoint;
 
@@ -170,8 +173,9 @@ namespace HyperStrike
             for (int nextPacket = 0; nextPacket < data.Length;)
             {
                 PacketType packetType = (PacketType)data[nextPacket];
-                Debug.Log(packetType);
+                
                 if (packetType == PacketType.NONE) break;
+                Debug.Log(packetType);
 
                 int packetSize = BitConverter.ToInt32(data, nextPacket + 1); // Take Size
 
