@@ -55,7 +55,6 @@ namespace HyperStrike
 
         public PlayerState PredictPlayerState(PlayerState currentState, float elapsedTime)
         {
-            // Example logic for predicting states
             return currentState == PlayerState.RUNNING && elapsedTime > 1f ? PlayerState.IDLE : currentState;
         }
     }

@@ -45,10 +45,10 @@ public class Player : MonoBehaviour
         Packet.Position[1] = rb.position.y;
         Packet.Position[2] = rb.position.z;
                              
-        Packet.Rotation[0] = rb.rotation.x;
-        Packet.Rotation[1] = rb.rotation.y;
-        Packet.Rotation[2] = rb.rotation.z;
-        Packet.Rotation[3] = rb.rotation.w;
+        Packet.Rotation[0] = transform.rotation.x;
+        Packet.Rotation[1] = transform.rotation.y;
+        Packet.Rotation[2] = transform.rotation.z;
+        Packet.Rotation[3] = transform.rotation.w;
     }
     
     void UpdateGameObjectData()
@@ -61,7 +61,7 @@ public class Player : MonoBehaviour
         Quaternion rot = new Quaternion(Packet.Rotation[0], Packet.Rotation[1], Packet.Rotation[2], Packet.Rotation[3]);
         
         if (interpolation.IsStateChanged(rb.position, pos)) rb.position = interpolation.Interpolate(rb.position, pos);
-        if (interpolation.IsStateChanged(rb.rotation, rot)) rb.rotation = interpolation.Interpolate(rb.rotation, rot);
+        if (interpolation.IsStateChanged(transform.rotation, rot)) transform.rotation = interpolation.Interpolate(transform.rotation, rot);
 
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.isKinematic = false;
