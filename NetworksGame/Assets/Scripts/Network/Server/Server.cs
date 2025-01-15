@@ -46,6 +46,7 @@ namespace HyperStrike
 
             server_ConnectedUsers.Add(NetworkManager.Instance.nm_Socket.LocalEndPoint, userID);
 
+            NetworkManager.Instance.nm_IsHost = true;
             NetworkManager.Instance.SetNetPlayer(username, userID);
 
             NetworkManager.Instance.nm_StatusText += $"\nHost User created with name {username} and ID {userID}";
@@ -54,7 +55,6 @@ namespace HyperStrike
             NetworkManager.Instance.nm_Ball = GameObject.Find("Ball").GetComponent<BallController>();
 
             NetworkManager.Instance.nm_Connected = true;
-            NetworkManager.Instance.nm_IsHost = true;
 
             receive = new Thread(ReceiveHost);
             receive.Start();
@@ -79,16 +79,26 @@ namespace HyperStrike
             }
         }
 
-        void HandshakeToClient(byte[] data, int recv, EndPoint Remote)
+        bool HandshakeToClient(byte[] data, int recv, EndPoint Remote)
         {
             string message = System.Text.Encoding.UTF8.GetString(data, 0, recv);
-            if (message == "PING")
+            if (message == "LOCAL" && NetworkManager.Instance.nm_Match.localPlayers.Count < 3)
             {
                 byte[] pongMessage = System.Text.Encoding.UTF8.GetBytes("PONG");
                 NetworkManager.Instance.nm_Socket.SendTo(pongMessage, Remote);
 
-                NetworkManager.Instance.nm_StatusText += $"\nReceived PING seding PONG";
+                NetworkManager.Instance.nm_StatusText += $"\nReceived PING sending PONG";
+                return true;
             }
+            else if (message == "VISITANT" && NetworkManager.Instance.nm_Match.visitantPlayers.Count < 3)
+            {
+                byte[] pongMessage = System.Text.Encoding.UTF8.GetBytes("PONG");
+                NetworkManager.Instance.nm_Socket.SendTo(pongMessage, Remote);
+
+                NetworkManager.Instance.nm_StatusText += $"\nReceived PING sending PONG";
+                return true;
+            }
+            return false;
         }
         #endregion
 
@@ -129,8 +139,7 @@ namespace HyperStrike
 
                 if (playerId == -1 && server_ConnectedUsers.Count < GameManager.Instance.gm_MaxPlayers && recv > 0)
                 {
-                    //Thread handshake = new Thread(() => HandshakeToClient(data, recv, Remote));
-                    HandshakeToClient(data, recv, Remote);
+                    if (HandshakeToClient(data, recv, Remote)) continue;
 
                     // READ DATA FROM NEW CLIENT
                     NetworkManager.Instance.HandlePacket(data, out PlayerDataPacket playerDataPacket);
@@ -139,21 +148,17 @@ namespace HyperStrike
 
                     server_ConnectedUsers.Add(Remote, playerDataPacket.PlayerId);
 
-                    // Send all data to NEW CLIENT
-                    byte[] packetToSend = CreatePacketToSend();
-                    Thread serverAnswer = new Thread(() => SendHost(Remote, packetToSend));
-                    serverAnswer.Start();
-
                     MainThreadInvoker.Invoke(() =>
                     {
-                        packetToSend = new byte[1024];
-                        packetToSend = CreatePacketToSend();
+                        //Debug.Log($"{playerDataPacket.PlayerName} Team: {playerDataPacket.Team}");
+                        // Send all data to NEW CLIENT
+                        byte[] packetToSend = CreatePacketToSend();
 
                         if (server_ConnectedUsers.Count > 2)
                         {
                             foreach (KeyValuePair<EndPoint, int> user in server_ConnectedUsers)
                             {
-                                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString() && playerId == user.Value)
+                                if (NetworkManager.Instance.nm_Socket.LocalEndPoint.ToString() == user.Key.ToString())
                                     continue;
 
                                 Thread answer = new Thread(() => SendHost(user.Key, packetToSend));
@@ -199,6 +204,7 @@ namespace HyperStrike
                         Debug.LogWarning($"Skipping player {p.Key} due to packet size limit.");
                         break;
                     }
+                    //Debug.Log($"{p.Value.Packet.PlayerName} Team: {p.Value.Packet.Team}");
                     playerStream.Write(playerPacket, 0, playerPacket.Length);
                 }
                 // Write player data to the main packet

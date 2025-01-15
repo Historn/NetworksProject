@@ -60,6 +60,10 @@ public class Rocket : Projectile
                 
                 rb.AddForce(dir.normalized * explosionForce, ForceMode.Impulse);
             }
+            if (collider.CompareTag("Ball"))
+            {
+                collider.GetComponent<BallController>().Packet.LastHitPlayerId = Packet.ShooterId;
+            }
         }
     }
 

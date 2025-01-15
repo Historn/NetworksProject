@@ -33,7 +33,7 @@ public class BallController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        //interpolation.SetBaseSpeed(1000f);
+
         // Create a new Physics Material for runtime changes
         ballMaterial = new PhysicMaterial
         {
@@ -72,14 +72,12 @@ public class BallController : MonoBehaviour
             {
                 UpdateGameObjectData();
                 updateGO = false;
-                Debug.Log("UPDATED BALL");
             }
             else
             {
                 // Extrapolate if no updates received in the last 20 ms
                 rb.position = prediction.PredictPositionWithCollisions(rb.position, velocity, Time.fixedDeltaTime, pitchMin, pitchMax, ref velocity);
                 rb.rotation = prediction.PredictRotation(rb.rotation, rb.angularVelocity, Time.fixedDeltaTime);
-                Debug.Log("PREDICTED BALL");
                 lastUpdateTime = Time.time;
             }
         }

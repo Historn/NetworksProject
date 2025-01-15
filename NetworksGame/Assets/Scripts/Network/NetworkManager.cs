@@ -36,6 +36,7 @@ namespace HyperStrike
         [HideInInspector] public string nm_StatusText;
         [HideInInspector] public bool nm_Connected = false;
         [HideInInspector] public bool nm_IsHost = false;
+        [HideInInspector] public bool nm_ConnectedNewPlayer = false;
 
         [SerializeField]GameObject clientInstancePrefab;
         [SerializeField]GameObject rocketInstancePrefab;
@@ -74,7 +75,7 @@ namespace HyperStrike
         }
 
         #region CONNECTION
-        public void SetNetPlayer(string username, int id)
+        public void SetNetPlayer(string username, int id, bool team = true)
         {
             // Set Up Player before starting server
             GameObject go = GameObject.Find("Player");
@@ -85,11 +86,13 @@ namespace HyperStrike
                 player.Packet.PlayerName = username;
 
                 player.Packet.PlayerId = id;
+                player.Packet.Team = team;
 
                 nm_PlayerData = player.Packet;
                 nm_Player = go;
                 nm_PlayerScript = player;
                 nm_ActivePlayers.Add(player.Packet.PlayerId, player);
+                nm_ConnectedNewPlayer = true;
             }
         }
         #endregion
@@ -103,6 +106,7 @@ namespace HyperStrike
             player.Packet = data;
             nm_ActivePlayers.Add(data.PlayerId, player);
             nm_LastPlayerStates.Add(data.PlayerId, player.Packet);
+            nm_ConnectedNewPlayer = true;
         }
         
         public Projectile InstatiateProjectile(ProjectilePacket data)
@@ -139,6 +143,7 @@ namespace HyperStrike
 
             foreach (byte[] packet in packets)
             {
+                if (packet.Length < 1) continue;
                 type = (PacketType)BitConverter.ToInt32(packet, 0); // Mal
                 switch (type)
                 {
@@ -173,11 +178,10 @@ namespace HyperStrike
             for (int nextPacket = 0; nextPacket < data.Length;)
             {
                 PacketType packetType = (PacketType)data[nextPacket];
-                
-                if (packetType == PacketType.NONE) break;
-                Debug.Log(packetType);
 
                 int packetSize = BitConverter.ToInt32(data, nextPacket + 1); // Take Size
+
+                if (packetSize <= 1 || packetSize >= 1024) break;
 
                 byte[] packet = data.Skip(nextPacket).Take(packetSize).ToArray();
                 packets.Add(packet);
@@ -220,7 +224,6 @@ namespace HyperStrike
             // Extract player-specific data
             PlayerDataPacket playerPacket = new PlayerDataPacket();
             playerPacket.Deserialize(playerData, lastState);
-            
 
             if(playerId == nm_PlayerData.PlayerId) return playerPacket;
 

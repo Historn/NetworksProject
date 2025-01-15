@@ -19,7 +19,7 @@ namespace HyperStrike
         float sendInterval = 0.01f; // 10 ms interval
         Thread receive;
 
-        public bool StartClient(string username, string hostIp = "127.0.0.1")
+        public bool StartClient(string username, bool team, string hostIp = "127.0.0.1")
         {
             try
             {
@@ -33,7 +33,7 @@ namespace HyperStrike
                     NetworkManager.Instance.nm_Socket.Connect(NetworkManager.Instance.nm_ServerEndPoint);
 
                     // Send a ping message to the host
-                    byte[] pingMessage = System.Text.Encoding.UTF8.GetBytes("PING");
+                    byte[] pingMessage = team ? System.Text.Encoding.UTF8.GetBytes("LOCAL") : System.Text.Encoding.UTF8.GetBytes("VISITANT");
                     NetworkManager.Instance.nm_Socket.Send(pingMessage);
 
                     // Wait for a response with a timeout
@@ -61,11 +61,11 @@ namespace HyperStrike
             return false;
         }
 
-        public void SetClient(string username)
+        public void SetClient(string username, bool team)
         {
             int userID = IDGenerator.GenerateID();
 
-            NetworkManager.Instance.SetNetPlayer(username, userID);
+            NetworkManager.Instance.SetNetPlayer(username, userID, team);
 
             NetworkManager.Instance.nm_StatusText += $"\nPlayer {username} with ID {userID} created";
 
@@ -93,8 +93,8 @@ namespace HyperStrike
                 var lastState = NetworkManager.Instance.nm_LastPlayerStates.ContainsKey(id) 
                     ? NetworkManager.Instance.nm_LastPlayerStates[id] 
                     : new PlayerDataPacket();
-
-                byte[] playerData = NetworkManager.Instance.nm_PlayerScript.Packet.Serialize(lastState);
+                Debug.Log("Send Client is Team: " + NetworkManager.Instance.nm_PlayerData.Team);
+                byte[] playerData = NetworkManager.Instance.nm_PlayerData.Serialize(lastState);
 
                 memoryStream.Write(playerData, 0, playerData.Length);
 

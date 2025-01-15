@@ -17,6 +17,8 @@ public class Match : MonoBehaviour
     [HideInInspector] public int visitantGoals = 0;
 
     [Header("Match Settings")]
+    public List<Player> localPlayers = new List<Player>(); // Use Players ID
+    public List<Player> visitantPlayers = new List<Player>(); // Use Players ID
     [SerializeField] private GameObject ball;
     [SerializeField] private Transform ballStartPosition;
 
@@ -100,6 +102,18 @@ public class Match : MonoBehaviour
     public void IncrementLocalScore()
     {
         localGoals++;
+
+        int id = ballController.Packet.LastHitPlayerId;
+        if (NetworkManager.Instance.nm_ActivePlayers.ContainsKey(id))
+        {
+            Player p = NetworkManager.Instance.nm_ActivePlayers[id];
+            if (p != null && localPlayers.Contains(p))
+            {
+                p.Packet.Score += 100;
+                p.Packet.Goals++;
+            }
+        }
+
         UpdateScoreUI();
 
         TriggerGoalVFX(localGoalVFX);
@@ -110,6 +124,18 @@ public class Match : MonoBehaviour
     public void IncrementVisitantScore()
     {
         visitantGoals++;
+
+        int id = ballController.Packet.LastHitPlayerId;
+        if (NetworkManager.Instance.nm_ActivePlayers.ContainsKey(id))
+        {
+            Player p = NetworkManager.Instance.nm_ActivePlayers[id];
+            if (p != null && visitantPlayers.Contains(p))
+            {
+                p.Packet.Score += 100;
+                p.Packet.Goals++;
+            }
+        }
+
         UpdateScoreUI();
 
         TriggerGoalVFX(visitantGoalVFX);
@@ -188,6 +214,7 @@ public class Match : MonoBehaviour
             ballRigidbody.velocity = Vector3.zero;
             ballRigidbody.angularVelocity = Vector3.zero;
         }
+        ballController.Packet.LastHitPlayerId = -1;
     }
 
     void UpdatePlayerScore()
@@ -212,5 +239,26 @@ public class Match : MonoBehaviour
         Packet.CurrentTime = currentMatchTime;
         Packet.LocalGoals = localGoals;
         Packet.VisitantGoals = visitantGoals;
-    } 
+    }
+
+    void CheckTeamsChange()
+    {
+        for (int i = 0; i < localPlayers.Count; i++)
+        {
+            if (!localPlayers[i].Packet.Team)
+            {
+                visitantPlayers.Add(localPlayers[i]);
+                localPlayers.Remove(localPlayers[i]);
+            }
+        }
+        
+        for (int i = 0; i < visitantPlayers.Count; i++)
+        {
+            if (visitantPlayers[i].Packet.Team)
+            {
+                localPlayers.Add(visitantPlayers[i]);
+                visitantPlayers.Remove(visitantPlayers[i]);
+            }
+        }
+    }
 }

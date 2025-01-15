@@ -98,7 +98,7 @@ namespace HyperStrike
             return lastValue ?? new float[size];
         }
 
-        protected void WriteBoolDelta(BinaryWriter writer, bool? lastValue, bool currentValue)
+        protected void WriteDelta(BinaryWriter writer, bool? lastValue, bool currentValue)
         {
             if (lastValue == null || lastValue != currentValue)
             {
@@ -111,7 +111,7 @@ namespace HyperStrike
             }
         }
 
-        protected bool ReadBoolDelta(BinaryReader reader, bool? lastValue)
+        protected bool ReadDelta(BinaryReader reader, bool? lastValue)
         {
             return reader.ReadBoolean() ? reader.ReadBoolean() : lastValue ?? false;
         }

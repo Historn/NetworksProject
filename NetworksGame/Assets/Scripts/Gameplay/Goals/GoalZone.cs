@@ -14,11 +14,11 @@ namespace HyperStrike
             {
                 if (isLocalGoal)
                 {
-                    matchManager.IncrementLocalScore();
+                    matchManager.IncrementVisitantScore();
                 }
                 else
                 {
-                    matchManager.IncrementVisitantScore();
+                    matchManager.IncrementLocalScore();
                 }
             }
         }

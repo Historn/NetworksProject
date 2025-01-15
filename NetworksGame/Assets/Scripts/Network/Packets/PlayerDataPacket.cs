@@ -18,6 +18,7 @@ namespace HyperStrike
         public int PlayerId = -1;
         public float[] Position = new float[3];
         public float[] Rotation = new float[4];
+        public bool Team = false;
         public int Score = 0;
         public int Goals = 0;
 
@@ -57,6 +58,7 @@ namespace HyperStrike
                 // Compare with the last state
                 WriteDelta(writer, lastPlayerData?.Position, Position);
                 WriteDelta(writer, lastPlayerData?.Rotation, Rotation);
+                WriteDelta(writer, lastPlayerData?.Team, Team);
                 WriteDelta(writer, lastPlayerData?.Score, Score);
                 WriteDelta(writer, lastPlayerData?.Goals, Goals);
 
@@ -86,6 +88,7 @@ namespace HyperStrike
 
                 Position = ReadDelta(reader, lastPlayerData?.Position, 3);
                 Rotation = ReadDelta(reader, lastPlayerData?.Rotation, 4);
+                Team = ReadDelta(reader, lastPlayerData?.Team);
                 Score = ReadDelta(reader, lastPlayerData?.Score);
                 Goals = ReadDelta(reader, lastPlayerData?.Goals);
             }

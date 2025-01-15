@@ -64,8 +64,8 @@ public class MenuManager : MonoBehaviour
             },
             usernameHost.text));
     }
-    
-    public void JoinGame()
+
+    public void JoinGame(bool team)
     {
         if (usernameClient is null)
         {
@@ -77,9 +77,9 @@ public class MenuManager : MonoBehaviour
             throw new ArgumentNullException(nameof(hostIp));
         }
 
-        if (NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(usernameClient.text, hostIp.text) == false) 
+        if (NetworkManager.Instance.gameObject.GetComponent<Client>().StartClient(usernameClient.text, team, hostIp.text) == false) 
         {
-            errorText.text = "Failed to connect to the host!";
+            errorText.text = "Failed to connect to the host! Server doesn't exist or team is full.";
             return; 
         }
 
@@ -93,7 +93,7 @@ public class MenuManager : MonoBehaviour
             async (args) =>
             {
                 string playerName = args[0] as string;
-                NetworkManager.Instance.gameObject.GetComponent<Client>().SetClient(playerName);
+                NetworkManager.Instance.gameObject.GetComponent<Client>().SetClient(playerName, team);
             },
             usernameClient.text));
     }
